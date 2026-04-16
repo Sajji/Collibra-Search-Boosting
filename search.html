@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Catalog Search</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-light: #122040;
+    --navy-mid: #1a2d54;
+    --slate: #2a3f5f;
+    --gold: #f2b400;
+    --gold-dim: #c49200;
+    --gold-glow: rgba(242, 180, 0, 0.12);
+    --cyan: #38bdf8;
+    --cyan-dim: rgba(56, 189, 248, 0.15);
+    --text: #e2e8f0;
+    --text-dim: #8896ab;
+    --text-muted: #5a6a80;
+    --border: rgba(255,255,255,0.06);
+    --danger: #f87171;
+    --success: #34d399;
+    --purple: #a78bfa;
+    --radius: 8px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--navy); color: var(--text); min-height: 100vh; line-height: 1.5; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px; background: var(--navy-light);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo {
+    width: 32px; height: 32px; background: var(--gold); border-radius: 6px;
+    display: grid; place-items: center; font-weight: 700; font-size: 16px; color: var(--navy);
+  }
+  .topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar h1 span { color: var(--gold); }
+  .topbar-right { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+
+  .boost-badge {
+    font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 99px; cursor: default;
+  }
+  .boost-badge.on  { background: var(--gold-glow); color: var(--gold); border: 1px solid rgba(242,180,0,0.2); }
+  .boost-badge.off { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .source-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+  }
+  .source-badge.collibra { background: rgba(27,106,201,0.15); color: #60a5fa; border: 1px solid rgba(27,106,201,0.25); }
+  .source-badge.local    { background: rgba(255,255,255,0.04); color: var(--text-muted); border: 1px solid var(--border); }
+
+  .btn {
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    padding: 8px 18px; border-radius: var(--radius); border: none; cursor: pointer;
+    transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+  }
+  .btn-secondary { background: var(--navy-mid); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--slate); }
+
+  .toggle-wrap { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-dim); font-weight: 500; }
+  .toggle {
+    width: 36px; height: 20px; background: var(--slate); border-radius: 10px;
+    position: relative; cursor: pointer; transition: background 0.2s;
+  }
+  .toggle.on { background: var(--gold); }
+  .toggle::after {
+    content: ''; position: absolute; width: 16px; height: 16px; background: white;
+    border-radius: 50%; top: 2px; left: 2px; transition: transform 0.2s;
+  }
+  .toggle.on::after { transform: translateX(16px); }
+
+  .search-container { max-width: 860px; margin: 0 auto; padding: 40px 32px 24px; }
+  .search-box { position: relative; margin-bottom: 12px; }
+  .search-icon {
+    position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none;
+  }
+  .search-input {
+    width: 100%; font-family: var(--font); font-size: 16px;
+    padding: 14px 16px 14px 46px; background: var(--navy-light);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); outline: none; transition: border-color 0.15s;
+  }
+  .search-input::placeholder { color: var(--text-muted); }
+  .search-input:focus { border-color: var(--gold); }
+  .search-meta {
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 12px; color: var(--text-muted); padding: 0 4px; min-height: 20px; margin-bottom: 8px;
+  }
+
+  .results-container { max-width: 860px; margin: 0 auto; padding: 0 32px 64px; }
+
+  .result-card {
+    background: var(--navy-light); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 18px 22px; margin-bottom: 10px; transition: border-color 0.15s, transform 0.1s;
+    cursor: pointer; position: relative;
+  }
+  .result-card:hover { border-color: rgba(242,180,0,0.2); transform: translateX(2px); }
+  .result-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+  .result-title { font-size: 15px; font-weight: 600; color: var(--cyan); word-break: break-word; }
+  .result-title a { color: inherit; text-decoration: none; }
+  .result-title a:hover { text-decoration: underline; }
+
+  .result-badges { display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap; }
+  .result-badge {
+    font-size: 10px; font-weight: 600; padding: 3px 8px; border-radius: 4px;
+    white-space: nowrap; text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .badge-type   { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-status { background: rgba(168,139,250,0.12); color: #a78bfa; }
+  .badge-boost  { background: var(--gold-glow); color: var(--gold); }
+
+  .result-highlights { margin-top: 8px; font-size: 13px; color: var(--text-dim); line-height: 1.6; }
+  .hl-row { padding: 3px 0; display: flex; gap: 8px; }
+  .hl-field {
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    min-width: 80px; flex-shrink: 0; padding-top: 2px;
+  }
+  .hl-fragment { flex: 1; word-break: break-word; }
+  .hl-fragment strong { color: var(--gold); font-weight: 600; }
+
+  .result-score {
+    position: absolute; top: 18px; right: 22px;
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted); display: none;
+  }
+  .show-scores .result-score { display: block; }
+  .boost-detail {
+    margin-top: 6px; font-family: var(--mono); font-size: 10px;
+    color: var(--text-muted); display: none;
+  }
+  .show-scores .boost-detail { display: block; }
+  .boost-detail span { color: var(--gold); }
+
+  .pagination { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 24px; }
+  .page-btn {
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    padding: 6px 14px; background: var(--navy-light); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+  }
+  .page-btn:hover:not(:disabled) { background: var(--navy-mid); color: var(--text); }
+  .page-btn:disabled { opacity: 0.3; cursor: default; }
+  .page-info { font-size: 12px; color: var(--text-muted); padding: 0 8px; }
+
+  .loading-bar {
+    height: 2px; background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    position: fixed; top: 65px; left: 0; right: 0;
+    animation: slide 1s ease infinite; display: none; z-index: 200;
+  }
+  .loading-bar.active { display: block; }
+  @keyframes slide { 0%{transform:translateX(-100%)} 100%{transform:translateX(100%)} }
+
+  .empty-state { text-align: center; padding: 64px 24px; color: var(--text-muted); }
+  .empty-state .big { font-size: 40px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; max-width: 360px; margin: 0 auto; }
+
+  @media (max-width: 768px) {
+    .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+    .search-container, .results-container { padding-left: 16px; padding-right: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="loading-bar" id="loadingBar"></div>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">S</div>
+    <h1>Data Catalog <span>Search</span></h1>
+  </div>
+  <div class="topbar-right">
+    <span id="boostBadge" class="boost-badge off">Boosts: Off</span>
+    <span id="sourceBadge" class="source-badge local">Config: local</span>
+    <div class="toggle-wrap">
+      <span>Boost</span>
+      <div id="boostToggle" class="toggle" onclick="toggleBoost()"></div>
+    </div>
+    <div class="toggle-wrap" style="margin-left:4px">
+      <span>Scores</span>
+      <div id="scoreToggle" class="toggle" onclick="toggleScores()"></div>
+    </div>
+  </div>
+</div>
+
+<div class="search-container">
+  <div class="search-box">
+    <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input id="searchInput" class="search-input" type="text" placeholder="Search the data catalog&hellip;" autocomplete="off">
+  </div>
+  <div class="search-meta">
+    <span id="resultsMeta"></span>
+    <span id="boostInfo"></span>
+  </div>
+</div>
+
+<div class="results-container" id="resultsContainer">
+  <div class="empty-state">
+    <div class="big">&#128269;</div>
+    <p>Type a keyword to search across assets, descriptions, and attributes in the catalog.</p>
+  </div>
+</div>
+
+<script>
+const BASE_URL = window.location.origin;
+const STORAGE_KEY = 'collibra-search-boosts';
+const PAGE_SIZE = 50;
+
+// Collibra config location constants
+const COMMUNITY_NAME = 'Collibra Configuration Settings';
+const DOMAIN_NAME = 'Collibra Configuration Glossary';
+const ASSET_NAME = 'Search Settings';
+const DEFINITION_ATTR_TYPE_ID = '00000000-0000-0000-0000-000000000202';
+
+let csrfToken = null;
+let boostEnabled = true;
+let showScores = false;
+let currentQuery = '';
+let currentOffset = 0;
+let totalResults = 0;
+let rawResults = [];
+let attrValueMap = {};
+let boostConfig = { assetTypes: {}, statuses: {}, attributeTypes: {} };
+let configSource = 'local'; // 'collibra' or 'local'
+
+// ── Init ──
+(async function() {
+  // Fetch CSRF
+  try {
+    const res = await fetch(`${BASE_URL}/rest/2.0/auth/sessions/current?include=csrfToken`, { credentials: 'include' });
+    const data = await res.json();
+    csrfToken = data.csrfToken;
+  } catch (e) { console.warn('CSRF fetch failed:', e); }
+
+  // Restore UI toggles
+  const saved = localStorage.getItem('search-ui-state');
+  if (saved) try { const s = JSON.parse(saved); boostEnabled = s.boostEnabled ?? true; showScores = s.showScores ?? false; } catch {}
+  syncToggles();
+
+  // Load boost config — try Collibra first, fall back to localStorage
+  await loadBoostConfig();
+
+  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(0); });
+  document.getElementById('searchInput').focus();
+})();
+
+// ── Load boost config ──
+async function loadBoostConfig() {
+  // Try Collibra
+  try {
+    const commRes = await apiGet(`communities?name=${encodeURIComponent(COMMUNITY_NAME)}&nameMatchMode=EXACT&limit=1`);
+    const comm = (commRes.results || [])[0];
+    if (comm) {
+      const domRes = await apiGet(`domains?name=${encodeURIComponent(DOMAIN_NAME)}&nameMatchMode=EXACT&communityId=${comm.id}&limit=1`);
+      const dom = (domRes.results || [])[0];
+      if (dom) {
+        const assetRes = await apiGet(`assets?name=${encodeURIComponent(ASSET_NAME)}&nameMatchMode=EXACT&domainId=${dom.id}&limit=1`);
+        const asset = (assetRes.results || [])[0];
+        if (asset) {
+          const attrRes = await apiGet(`attributes?assetId=${asset.id}&typeId=${DEFINITION_ATTR_TYPE_ID}&limit=1`);
+          const attr = (attrRes.results || [])[0];
+          if (attr?.value) {
+            boostConfig = JSON.parse(attr.value);
+            configSource = 'collibra';
+            // Also cache locally
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(boostConfig));
+            updateSourceBadge();
+            console.log('Boost config loaded from Collibra');
+            return;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('Collibra config load failed, falling back to local:', e);
+  }
+
+  // Fall back to localStorage
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (raw) {
+      // Migrate old format
+      if (raw.attributeTypes) {
+        for (const [k, v] of Object.entries(raw.attributeTypes)) {
+          if (typeof v === 'number') raw.attributeTypes[k] = { resourceType: 'unknown', rules: { '__presence__': v } };
+        }
+      }
+      boostConfig = raw;
+    }
+  } catch {}
+  configSource = 'local';
+  updateSourceBadge();
+}
+
+async function apiGet(path) {
+  const res = await fetch(`${BASE_URL}/rest/2.0/${path}`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`${res.status}`);
+  return res.json();
+}
+
+function updateSourceBadge() {
+  const el = document.getElementById('sourceBadge');
+  if (configSource === 'collibra') {
+    el.className = 'source-badge collibra';
+    el.textContent = 'Config: Collibra';
+  } else {
+    el.className = 'source-badge local';
+    el.textContent = 'Config: local';
+  }
+}
+
+// ── Toggles ──
+function toggleBoost() { boostEnabled = !boostEnabled; syncToggles(); saveUI(); if (rawResults.length) renderResults(); }
+function toggleScores() { showScores = !showScores; syncToggles(); saveUI(); }
+function syncToggles() {
+  document.getElementById('boostToggle').classList.toggle('on', boostEnabled);
+  document.getElementById('scoreToggle').classList.toggle('on', showScores);
+  const bb = document.getElementById('boostBadge');
+  bb.className = `boost-badge ${boostEnabled?'on':'off'}`;
+  bb.textContent = boostEnabled ? 'Boosts: On' : 'Boosts: Off';
+  document.getElementById('resultsContainer').classList.toggle('show-scores', showScores);
+}
+function saveUI() { localStorage.setItem('search-ui-state', JSON.stringify({ boostEnabled, showScores })); }
+
+// ── Fetch attribute values for result assets ──
+async function fetchAttributeValues(assetIds, config) {
+  attrValueMap = {};
+  const attrTypeIds = Object.keys(config.attributeTypes || {});
+  if (!attrTypeIds.length || !assetIds.length) return;
+  const fetches = attrTypeIds.map(async (typeId) => {
+    const assetParams = assetIds.map(id => `assetId=${encodeURIComponent(id)}`).join('&');
+    const url = `${BASE_URL}/rest/2.0/attributes?typeId=${encodeURIComponent(typeId)}&${assetParams}&offset=0&limit=${assetIds.length * 2}`;
+    try {
+      const res = await fetch(url, { credentials: 'include' });
+      if (!res.ok) return;
+      const data = await res.json();
+      for (const attr of (data.results || [])) {
+        const aid = attr.asset?.id; if (!aid) continue;
+        if (!attrValueMap[aid]) attrValueMap[aid] = {};
+        if (!attrValueMap[aid][typeId]) attrValueMap[aid][typeId] = [];
+        attrValueMap[aid][typeId].push(attr.value);
+      }
+    } catch (e) { console.warn(`Attr fetch failed for ${typeId}:`, e); }
+  });
+  await Promise.all(fetches);
+}
+
+// ── Compute boost multiplier ──
+function computeMultiplier(result, config) {
+  let mult = 1.0;
+  const res = result.resource;
+  const tb = config.assetTypes?.[res.type?.id];
+  if (tb !== undefined) mult *= tb;
+  const sb = config.statuses?.[res.status?.id];
+  if (sb !== undefined) mult *= sb;
+
+  const assetAttrs = attrValueMap[res.id] || {};
+  for (const [attrTypeId, attrConfig] of Object.entries(config.attributeTypes || {})) {
+    const rules = attrConfig.rules || {};
+    const values = assetAttrs[attrTypeId];
+    if (rules['__presence__'] !== undefined) {
+      if (values?.length) mult *= rules['__presence__'];
+      continue;
+    }
+    if (!values?.length) continue;
+    for (const actualVal of values) {
+      const nv = String(actualVal).toLowerCase();
+      for (const [rk, rb] of Object.entries(rules)) {
+        if (rb === 1.0) continue;
+        if (rk === 'true' || rk === 'false') {
+          const bv = (actualVal === true || nv === 'true');
+          if ((rk === 'true' && bv) || (rk === 'false' && !bv)) mult *= rb;
+        } else if (nv === rk.toLowerCase()) mult *= rb;
+      }
+    }
+  }
+  return mult;
+}
+
+function boostBreakdown(result, config) {
+  const parts = [];
+  const res = result.resource;
+  const tb = config.assetTypes?.[res.type?.id];
+  if (tb !== undefined && tb !== 1.0) parts.push(`type:${res.type.name}=×${tb}`);
+  const sb = config.statuses?.[res.status?.id];
+  if (sb !== undefined && sb !== 1.0) parts.push(`status:${res.status.name}=×${sb}`);
+  const assetAttrs = attrValueMap[res.id] || {};
+  for (const [attrTypeId, attrConfig] of Object.entries(config.attributeTypes || {})) {
+    const rules = attrConfig.rules || {};
+    const values = assetAttrs[attrTypeId];
+    if (rules['__presence__'] !== undefined && values?.length) {
+      parts.push(`has-attr:${attrTypeId.substring(0,8)}=×${rules['__presence__']}`);
+      continue;
+    }
+    if (!values) continue;
+    for (const v of values) {
+      const nv = String(v).toLowerCase();
+      for (const [rk, rb] of Object.entries(rules)) {
+        if (rb === 1.0) continue;
+        if ((rk === 'true' || rk === 'false')) {
+          const bv = (v === true || nv === 'true');
+          if ((rk === 'true' && bv) || (rk === 'false' && !bv)) parts.push(`${rk}=×${rb}`);
+        } else if (nv === rk.toLowerCase()) parts.push(`val:${rk}=×${rb}`);
+      }
+    }
+  }
+  return parts;
+}
+
+// ── Search ──
+async function doSearch(offset) {
+  const query = document.getElementById('searchInput').value.trim();
+  if (!query) return;
+  currentQuery = query; currentOffset = offset;
+  document.getElementById('loadingBar').classList.add('active');
+
+  const payload = {
+    keywords: query,
+    searchInFields: [{ resourceType: "Asset", fields: ["displayName","name","attributes","StringAttribute:00000000-0000-0000-0000-000000007022"] }],
+    sortField: "RELEVANCE", sortOrder: "DESC",
+    highlights: { preTag: "<strong>", postTag: "</strong>" },
+    limit: PAGE_SIZE, offset
+  };
+  const headers = { 'Content-Type': 'application/json' };
+  if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
+
+  try {
+    const res = await fetch(`${BASE_URL}/rest/2.0/search`, {
+      method: 'POST', credentials: 'include', headers, body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+    const data = await res.json();
+    totalResults = data.total || 0;
+    rawResults = data.results || [];
+
+    if (boostEnabled) {
+      const assetIds = rawResults.map(r => r.resource?.id).filter(Boolean);
+      await fetchAttributeValues(assetIds, boostConfig);
+    }
+    renderResults();
+  } catch (err) {
+    document.getElementById('resultsContainer').innerHTML =
+      `<div class="empty-state" style="color:var(--danger)"><div class="big">&#9888;</div><p>${esc(err.message)}<br>Make sure you are logged into Collibra.</p></div>`;
+    document.getElementById('resultsMeta').textContent = '';
+  } finally { document.getElementById('loadingBar').classList.remove('active'); }
+}
+
+// ── Render ──
+function renderResults() {
+  const container = document.getElementById('resultsContainer');
+  const meta = document.getElementById('resultsMeta');
+  const info = document.getElementById('boostInfo');
+
+  if (!rawResults.length) {
+    container.innerHTML = '<div class="empty-state"><div class="big">&#128528;</div><p>No results found.</p></div>';
+    meta.textContent = `0 results for "${currentQuery}"`;
+    info.textContent = ''; return;
+  }
+
+  let scored = rawResults.map((r, i) => {
+    const base = 1000 - i;
+    const mult = boostEnabled ? computeMultiplier(r, boostConfig) : 1.0;
+    const bd = boostEnabled ? boostBreakdown(r, boostConfig) : [];
+    return { ...r, _score: base * mult, _mult: mult, _breakdown: bd };
+  });
+  scored.sort((a, b) => b._score - a._score);
+
+  const boostCount = scored.filter(r => r._mult !== 1.0).length;
+  meta.textContent = `${totalResults.toLocaleString()} results for "${currentQuery}" \u00b7 showing ${currentOffset+1}\u2013${currentOffset+scored.length}`;
+  info.textContent = boostEnabled && boostCount ? `${boostCount} result${boostCount>1?'s':''} boosted` : '';
+
+  const cards = scored.map(r => {
+    const res = r.resource;
+    const name = (res.displayName||res.name||'').replace(/---https?:\/\/.+$/,'').trim()||res.name;
+    const url = `${BASE_URL}/asset/${res.id}`;
+    const typeName = res.type?.name||'';
+    const statusName = res.status?.name||'';
+    const boostLabel = r._mult!==1.0 ? `<span class="result-badge badge-boost">${r._mult>1?'+':''}${((r._mult-1)*100).toFixed(0)}%</span>` : '';
+
+    const seen = new Set();
+    const hlRows = (r.highlights||[]).filter(h => { const f=h.fragment.replace(/<\/?strong>/g,''); if(seen.has(f))return false; seen.add(f); return true; })
+      .slice(0,4).map(h => `<div class="hl-row"><span class="hl-field">${esc(friendlyField(h.field))}</span><span class="hl-fragment">${h.fragment}</span></div>`).join('');
+
+    const bdHtml = r._breakdown.length ? `<div class="boost-detail">Boosts: ${r._breakdown.map(b=>`<span>${esc(b)}</span>`).join(' &middot; ')}</div>` : '';
+
+    return `<div class="result-card" onclick="if(event.target.tagName!=='A')window.open('${url}','_blank')">
+      <div class="result-score">score: ${r._score.toFixed(1)} (\u00d7${r._mult.toFixed(2)})</div>
+      <div class="result-header">
+        <div class="result-title"><a href="${url}" target="_blank" onclick="event.stopPropagation()">${esc(name)}</a></div>
+        <div class="result-badges">
+          ${typeName?`<span class="result-badge badge-type">${esc(typeName)}</span>`:''}
+          ${statusName?`<span class="result-badge badge-status">${esc(statusName)}</span>`:''}
+          ${boostLabel}
+        </div>
+      </div>
+      ${hlRows?`<div class="result-highlights">${hlRows}</div>`:''}
+      ${bdHtml}
+    </div>`;
+  }).join('');
+
+  const totalPages = Math.ceil(totalResults/PAGE_SIZE);
+  const curPage = Math.floor(currentOffset/PAGE_SIZE)+1;
+  const pag = totalPages>1 ? `<div class="pagination">
+    <button class="page-btn" ${curPage<=1?'disabled':''} onclick="doSearch(${currentOffset-PAGE_SIZE})">&#8592; Prev</button>
+    <span class="page-info">Page ${curPage} of ${totalPages}</span>
+    <button class="page-btn" ${curPage>=totalPages?'disabled':''} onclick="doSearch(${currentOffset+PAGE_SIZE})">Next &#8594;</button>
+  </div>` : '';
+
+  container.innerHTML = cards + pag;
+}
+
+function friendlyField(f) {
+  if (f==='name') return 'Name';
+  if (f==='displayName') return 'Display';
+  if (f.startsWith('attribute:')) return 'Attribute';
+  return f;
+}
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+</script>
+</body>
+</html>

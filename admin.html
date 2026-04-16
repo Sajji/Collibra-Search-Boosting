@@ -1,0 +1,955 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search Boost Administration</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #0a1628;
+    --navy-light: #122040;
+    --navy-mid: #1a2d54;
+    --slate: #2a3f5f;
+    --gold: #f2b400;
+    --gold-dim: #c49200;
+    --gold-glow: rgba(242, 180, 0, 0.12);
+    --cyan: #38bdf8;
+    --cyan-dim: rgba(56, 189, 248, 0.15);
+    --text: #e2e8f0;
+    --text-dim: #8896ab;
+    --text-muted: #5a6a80;
+    --border: rgba(255,255,255,0.06);
+    --danger: #f87171;
+    --success: #34d399;
+    --purple: #a78bfa;
+    --purple-dim: rgba(167,139,250,0.12);
+    --radius: 8px;
+    --font: 'DM Sans', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font); background: var(--navy); color: var(--text); min-height: 100vh; line-height: 1.5; }
+
+  .topbar {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 32px; background: var(--navy-light);
+    border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 100;
+  }
+  .topbar-left { display: flex; align-items: center; gap: 14px; }
+  .topbar-logo {
+    width: 32px; height: 32px; background: var(--gold); border-radius: 6px;
+    display: grid; place-items: center; font-weight: 700; font-size: 16px; color: var(--navy);
+  }
+  .topbar h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.3px; }
+  .topbar h1 span { color: var(--gold); }
+  .topbar-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .btn {
+    font-family: var(--font); font-size: 13px; font-weight: 600;
+    padding: 8px 18px; border-radius: var(--radius); border: none; cursor: pointer;
+    transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn-primary { background: var(--gold); color: var(--navy); }
+  .btn-primary:hover:not(:disabled) { background: #ffc520; transform: translateY(-1px); }
+  .btn-collibra { background: #1b6ac9; color: white; }
+  .btn-collibra:hover:not(:disabled) { background: #2578d9; transform: translateY(-1px); }
+  .btn-secondary { background: var(--navy-mid); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover:not(:disabled) { background: var(--slate); }
+  .btn-danger { background: rgba(248,113,113,0.12); color: var(--danger); border: 1px solid rgba(248,113,113,0.2); }
+  .btn-danger:hover:not(:disabled) { background: rgba(248,113,113,0.2); }
+
+  .container { max-width: 1100px; margin: 0 auto; padding: 32px 32px 64px; }
+
+  .intro {
+    margin-bottom: 32px; padding: 20px 24px;
+    background: var(--gold-glow); border: 1px solid rgba(242,180,0,0.15); border-radius: var(--radius);
+  }
+  .intro p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+  .intro strong { color: var(--gold); }
+
+  /* ── Sync status bar ── */
+  .sync-bar {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 24px;
+    padding: 12px 16px; background: var(--navy-light); border: 1px solid var(--border);
+    border-radius: var(--radius); font-size: 13px;
+  }
+  .sync-dot {
+    width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
+  }
+  .sync-dot.connected { background: var(--success); box-shadow: 0 0 6px rgba(52,211,153,0.5); }
+  .sync-dot.disconnected { background: var(--danger); }
+  .sync-dot.loading { background: var(--gold); animation: pulse 1s ease infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+  .sync-label { color: var(--text-dim); flex: 1; }
+  .sync-label strong { color: var(--text); }
+  .sync-id { font-family: var(--mono); font-size: 11px; color: var(--text-muted); }
+
+  .tabs {
+    display: flex; gap: 4px; margin-bottom: 24px;
+    background: var(--navy-light); padding: 4px; border-radius: var(--radius); width: fit-content;
+  }
+  .tab {
+    font-family: var(--font); font-size: 13px; font-weight: 500;
+    padding: 8px 20px; border-radius: 6px; border: none;
+    background: transparent; color: var(--text-dim); cursor: pointer; transition: all 0.15s;
+  }
+  .tab.active { background: var(--navy-mid); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+  .panel-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  .panel-header h2 { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; }
+  .badge-cyan { background: var(--cyan-dim); color: var(--cyan); }
+  .badge-gold { background: var(--gold-glow); color: var(--gold); }
+
+  .boost-table {
+    width: 100%; border-collapse: collapse; background: var(--navy-light);
+    border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border);
+  }
+  .boost-table thead th {
+    font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); padding: 12px 16px; text-align: left;
+    background: var(--navy-mid); border-bottom: 1px solid var(--border);
+  }
+  .boost-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  .boost-table tbody tr:last-child { border-bottom: none; }
+  .boost-table tbody tr:hover { background: rgba(255,255,255,0.02); }
+  .boost-table td { padding: 10px 16px; font-size: 13px; vertical-align: middle; }
+  .id-cell {
+    font-family: var(--mono); font-size: 11px; color: var(--text-muted);
+    max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .name-cell { font-weight: 500; }
+
+  .boost-control { display: flex; align-items: center; gap: 10px; min-width: 220px; }
+  .boost-slider {
+    -webkit-appearance: none; appearance: none; width: 120px; height: 4px;
+    background: var(--slate); border-radius: 2px; outline: none;
+  }
+  .boost-slider::-webkit-slider-thumb {
+    -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%;
+    background: var(--gold); cursor: pointer; box-shadow: 0 0 6px rgba(242,180,0,0.4);
+  }
+  .boost-value {
+    font-family: var(--mono); font-size: 13px; width: 52px; text-align: center;
+    padding: 4px 6px; background: var(--navy); border: 1px solid var(--border);
+    border-radius: 4px; color: var(--text); outline: none;
+  }
+  .boost-value:focus { border-color: var(--gold); }
+  .boost-indicator { font-size: 11px; font-weight: 600; min-width: 18px; }
+  .boost-indicator.positive { color: var(--success); }
+  .boost-indicator.negative { color: var(--danger); }
+  .boost-indicator.neutral  { color: var(--text-muted); }
+
+  .attr-filter { margin-bottom: 16px; position: relative; }
+  .attr-filter input {
+    width: 100%; font-family: var(--font); font-size: 14px;
+    padding: 10px 16px 10px 38px; background: var(--navy-light);
+    border: 1px solid var(--border); border-radius: var(--radius);
+    color: var(--text); outline: none;
+  }
+  .attr-filter input::placeholder { color: var(--text-muted); }
+  .attr-filter input:focus { border-color: var(--gold); }
+  .attr-filter svg {
+    position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--text-muted); pointer-events: none;
+  }
+
+  .attr-card {
+    background: var(--navy-light); border: 1px solid var(--border); border-radius: var(--radius);
+    margin-bottom: 6px; overflow: hidden; transition: border-color 0.15s;
+  }
+  .attr-card.has-rules { border-color: rgba(242,180,0,0.2); }
+  .attr-card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px; cursor: pointer; user-select: none; transition: background 0.1s;
+  }
+  .attr-card-header:hover { background: rgba(255,255,255,0.02); }
+  .attr-card-left { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .attr-card-chevron {
+    width: 16px; height: 16px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0;
+  }
+  .attr-card.open .attr-card-chevron { transform: rotate(90deg); }
+  .attr-card-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .attr-card-meta { display: flex; gap: 6px; flex-shrink: 0; align-items: center; }
+  .type-tag {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: 0.3px;
+  }
+  .type-tag.boolean { background: rgba(52,211,153,0.12); color: var(--success); }
+  .type-tag.single  { background: var(--cyan-dim); color: var(--cyan); }
+  .type-tag.multi   { background: var(--purple-dim); color: var(--purple); }
+  .type-tag.text    { background: rgba(255,255,255,0.05); color: var(--text-muted); }
+  .type-tag.numeric { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .rules-count {
+    font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    background: var(--gold-glow); color: var(--gold);
+  }
+
+  .attr-card-body { display: none; padding: 0 16px 16px; }
+  .attr-card.open .attr-card-body { display: block; }
+  .attr-card-desc {
+    font-size: 12px; color: var(--text-muted); margin-bottom: 12px;
+    padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 6px; line-height: 1.5;
+  }
+  .attr-card-id { font-family: var(--mono); font-size: 11px; color: var(--text-muted); margin-bottom: 12px; padding: 0 4px; }
+
+  .value-rows { display: flex; flex-direction: column; gap: 4px; }
+  .value-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 8px 12px; background: var(--navy); border-radius: 6px;
+  }
+  .value-label {
+    font-size: 13px; font-weight: 500; min-width: 180px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .value-label.bool-true  { color: var(--success); }
+  .value-label.bool-false { color: var(--danger); }
+  .presence-note { font-size: 12px; color: var(--text-muted); font-style: italic; padding: 0 4px; margin-bottom: 8px; }
+
+  .loading-state, .empty-state { text-align: center; padding: 48px 24px; color: var(--text-dim); font-size: 14px; }
+  .spinner {
+    width: 28px; height: 28px; border: 3px solid var(--slate); border-top-color: var(--gold);
+    border-radius: 50%; animation: spin 0.7s linear infinite; margin: 0 auto 16px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ── Save progress modal ── */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+    z-index: 300; place-items: center;
+  }
+  .modal-overlay.active { display: grid; }
+  .modal {
+    background: var(--navy-light); border: 1px solid var(--border); border-radius: 12px;
+    padding: 28px 32px; min-width: 420px; max-width: 520px;
+  }
+  .modal h3 { font-size: 16px; font-weight: 600; margin-bottom: 20px; }
+  .step-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 20px; }
+  .step-item { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .step-icon {
+    width: 24px; height: 24px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 12px; font-weight: 700; flex-shrink: 0;
+  }
+  .step-icon.pending { background: var(--slate); color: var(--text-muted); }
+  .step-icon.active  { background: var(--gold); color: var(--navy); animation: pulse 1s ease infinite; }
+  .step-icon.done    { background: var(--success); color: var(--navy); }
+  .step-icon.error   { background: var(--danger); color: white; }
+  .step-label { color: var(--text-dim); }
+  .step-label.active { color: var(--text); font-weight: 500; }
+  .step-label.done   { color: var(--success); }
+  .step-label.error  { color: var(--danger); }
+  .step-detail {
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    margin-left: 34px; margin-top: -6px; word-break: break-all;
+  }
+  .modal-footer { display: flex; justify-content: flex-end; gap: 8px; }
+
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; padding: 12px 20px; border-radius: var(--radius);
+    font-size: 13px; font-weight: 500; transform: translateY(80px); opacity: 0;
+    transition: all 0.3s ease; z-index: 200;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: rgba(52,211,153,0.15); color: var(--success); border: 1px solid rgba(52,211,153,0.25); }
+  .toast.error   { background: rgba(248,113,113,0.15); color: var(--danger);  border: 1px solid rgba(248,113,113,0.25); }
+
+  @media (max-width: 768px) {
+    .topbar { padding: 12px 16px; }
+    .container { padding: 20px 16px; }
+    .id-cell { display: none; }
+    .value-label { min-width: 100px; }
+    .modal { min-width: auto; margin: 16px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-logo">B</div>
+    <h1>Search <span>Boost</span> Admin</h1>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn btn-danger" onclick="resetAll()">Reset All</button>
+    <button class="btn btn-secondary" onclick="exportConfig()">Export JSON</button>
+    <button class="btn btn-secondary" onclick="importConfig()">Import JSON</button>
+    <button class="btn btn-collibra" id="btnLoadCollibra" onclick="loadFromCollibra()">&#8635; Load from Collibra</button>
+    <button class="btn btn-primary" id="btnSaveCollibra" onclick="saveToCollibra()">&#10003; Save to Collibra</button>
+  </div>
+</div>
+
+<div class="container">
+  <div id="syncBar" class="sync-bar">
+    <div id="syncDot" class="sync-dot disconnected"></div>
+    <span id="syncLabel" class="sync-label">Not yet synced with Collibra</span>
+    <span id="syncId" class="sync-id"></span>
+  </div>
+
+  <div class="intro">
+    <p>
+      Configure <strong>boost multipliers</strong> for search results.
+      A multiplier of <strong>1.0</strong> is neutral. Values above 1.0 promote; below 1.0 demote.
+      Configuration is saved to a <strong>Business Term</strong> asset in Collibra so all users share the same boost settings.
+    </p>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-panel="assetTypes">Asset Types</button>
+    <button class="tab" data-panel="statuses">Statuses</button>
+    <button class="tab" data-panel="attributeTypes">Attribute Types</button>
+  </div>
+
+  <div id="panel-assetTypes" class="panel active">
+    <div class="panel-header">
+      <h2>Asset Types <span id="count-assetTypes" class="badge badge-cyan">0</span></h2>
+    </div>
+    <div id="table-assetTypes"><div class="loading-state"><div class="spinner"></div>Loading asset types&hellip;</div></div>
+  </div>
+
+  <div id="panel-statuses" class="panel">
+    <div class="panel-header">
+      <h2>Statuses <span id="count-statuses" class="badge badge-cyan">0</span></h2>
+    </div>
+    <div id="table-statuses"><div class="loading-state"><div class="spinner"></div>Loading statuses&hellip;</div></div>
+  </div>
+
+  <div id="panel-attributeTypes" class="panel">
+    <div class="panel-header">
+      <h2>Attribute Types <span id="count-attributeTypes" class="badge badge-cyan">0</span>
+        <span id="count-attrRules" class="badge badge-gold" style="display:none">0 rules</span>
+      </h2>
+    </div>
+    <div class="attr-filter">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="attrFilter" type="text" placeholder="Filter attribute types&hellip;" oninput="filterAttrCards()">
+    </div>
+    <div id="table-attributeTypes"><div class="loading-state"><div class="spinner"></div>Loading attribute types&hellip;</div></div>
+  </div>
+</div>
+
+<!-- Save progress modal -->
+<div id="saveModal" class="modal-overlay">
+  <div class="modal">
+    <h3 id="modalTitle">Saving to Collibra&hellip;</h3>
+    <div id="stepList" class="step-list"></div>
+    <div id="modalFooter" class="modal-footer" style="display:none">
+      <button class="btn btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<!-- Hidden file input for import -->
+<input type="file" id="importInput" accept=".json" style="display:none" onchange="handleImport(event)">
+
+<script>
+const BASE_URL = window.location.origin;
+const STORAGE_KEY = 'collibra-search-boosts';
+
+// Collibra IDs for the config storage structure
+const GLOSSARY_TYPE_ID = '00000000-0000-0000-0000-000000010001';
+const BUSINESS_TERM_TYPE_ID = '00000000-0000-0000-0000-000000011001';
+const ACCEPTED_STATUS_ID = '00000000-0000-0000-0000-000000005009';
+const DEFINITION_ATTR_TYPE_ID = '00000000-0000-0000-0000-000000000202';
+const COMMUNITY_NAME = 'Collibra Configuration Settings';
+const DOMAIN_NAME = 'Collibra Configuration Glossary';
+const ASSET_NAME = 'Search Settings';
+
+let csrfToken = null;
+let boostConfig = loadConfig();
+let allAttrTypes = [];
+
+// IDs discovered/created during save — cached for re-use
+let collibraIds = { communityId: null, domainId: null, assetId: null, definitionAttrId: null };
+
+// ─────────────────────────────────────
+// Config load/save (localStorage cache)
+// ─────────────────────────────────────
+function loadConfig() {
+  try {
+    const raw = JSON.parse(localStorage.getItem(STORAGE_KEY));
+    if (!raw) return { assetTypes: {}, statuses: {}, attributeTypes: {} };
+    if (raw.attributeTypes) {
+      for (const [k, v] of Object.entries(raw.attributeTypes)) {
+        if (typeof v === 'number') raw.attributeTypes[k] = { resourceType: 'unknown', rules: { '__presence__': v } };
+      }
+    }
+    return raw;
+  } catch { return { assetTypes: {}, statuses: {}, attributeTypes: {} }; }
+}
+
+function cleanConfig(cfg) {
+  const c = JSON.parse(JSON.stringify(cfg));
+  for (const [id, conf] of Object.entries(c.attributeTypes || {})) {
+    const active = Object.entries(conf.rules || {}).filter(([, v]) => v !== 1.0);
+    if (!active.length) delete c.attributeTypes[id];
+    else conf.rules = Object.fromEntries(active);
+  }
+  for (const cat of ['assetTypes', 'statuses']) {
+    for (const [id, v] of Object.entries(c[cat] || {})) { if (v === 1.0) delete c[cat][id]; }
+  }
+  return c;
+}
+
+function cacheLocally() {
+  const cleaned = cleanConfig(boostConfig);
+  boostConfig = cleaned;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+}
+
+// ─────────────────────────────────────
+// REST helpers
+// ─────────────────────────────────────
+async function fetchCsrf() {
+  const res = await fetch(`${BASE_URL}/rest/2.0/auth/sessions/current?include=csrfToken`, { credentials: 'include' });
+  const data = await res.json();
+  csrfToken = data.csrfToken;
+  return csrfToken;
+}
+
+async function apiGet(path) {
+  const res = await fetch(`${BASE_URL}/rest/2.0/${path}`, { credentials: 'include' });
+  if (!res.ok) throw new Error(`GET ${path}: ${res.status}`);
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  if (!csrfToken) await fetchCsrf();
+  const res = await fetch(`${BASE_URL}/rest/2.0/${path}`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`POST ${path}: ${res.status} ${t}`); }
+  return res.json();
+}
+
+async function apiPatch(path, body) {
+  if (!csrfToken) await fetchCsrf();
+  const res = await fetch(`${BASE_URL}/rest/2.0/${path}`, {
+    method: 'PATCH', credentials: 'include',
+    headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrfToken },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) { const t = await res.text(); throw new Error(`PATCH ${path}: ${res.status} ${t}`); }
+  return res.json();
+}
+
+// Rich-text helpers for Definition attribute
+function wrapAsRichText(jsonStr) {
+  return '<pre>' + jsonStr.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') + '</pre>';
+}
+function extractFromRichText(richText) {
+  const tmp = document.createElement('div');
+  tmp.innerHTML = richText;
+  return tmp.textContent || tmp.innerText || '';
+}
+
+async function fetchAll(path) {
+  let offset = 0, limit = 100, all = [];
+  while (true) {
+    const data = await apiGet(`${path}?offset=${offset}&limit=${limit}`);
+    const results = data.results || data;
+    if (!Array.isArray(results) || !results.length) break;
+    all = all.concat(results);
+    if (results.length < limit) break;
+    offset += limit;
+  }
+  return all;
+}
+
+// ─────────────────────────────────────
+// Save to Collibra (4-step flow)
+// ─────────────────────────────────────
+const STEPS = [
+  { id: 'community', label: 'Community: ' + COMMUNITY_NAME },
+  { id: 'domain',    label: 'Domain: ' + DOMAIN_NAME },
+  { id: 'asset',     label: 'Asset: ' + ASSET_NAME },
+  { id: 'attribute', label: 'Definition attribute (config JSON)' },
+];
+
+function openModal(title) {
+  document.getElementById('modalTitle').textContent = title;
+  document.getElementById('modalFooter').style.display = 'none';
+  const list = document.getElementById('stepList');
+  list.innerHTML = STEPS.map((s, i) => `
+    <div id="step-${s.id}" class="step-item">
+      <div class="step-icon pending">${i + 1}</div>
+      <span class="step-label">${esc(s.label)}</span>
+    </div>
+    <div id="detail-${s.id}" class="step-detail"></div>
+  `).join('');
+  document.getElementById('saveModal').classList.add('active');
+}
+
+function setStep(id, state, detail) {
+  const item = document.getElementById(`step-${id}`);
+  const icon = item.querySelector('.step-icon');
+  const label = item.querySelector('.step-label');
+  icon.className = `step-icon ${state}`;
+  label.className = `step-label ${state}`;
+  if (state === 'done') icon.textContent = '✓';
+  else if (state === 'error') icon.textContent = '✕';
+  if (detail) document.getElementById(`detail-${id}`).textContent = detail;
+}
+
+function closeModal() { document.getElementById('saveModal').classList.remove('active'); }
+
+async function saveToCollibra() {
+  openModal('Saving to Collibra…');
+  cacheLocally();
+  const configStr = JSON.stringify(cleanConfig(boostConfig));
+
+  try {
+    // Step 1: Community
+    setStep('community', 'active');
+    let community;
+    const commRes = await apiGet(`communities?name=${encodeURIComponent(COMMUNITY_NAME)}&nameMatchMode=EXACT&limit=1`);
+    const existing = (commRes.results || []);
+    if (existing.length > 0) {
+      community = existing[0];
+      setStep('community', 'done', `Found existing: ${community.id}`);
+    } else {
+      community = await apiPost('communities', { name: COMMUNITY_NAME, description: COMMUNITY_NAME });
+      setStep('community', 'done', `Created: ${community.id}`);
+    }
+    collibraIds.communityId = community.id;
+
+    // Step 2: Domain
+    setStep('domain', 'active');
+    let domain;
+    const domRes = await apiGet(`domains?name=${encodeURIComponent(DOMAIN_NAME)}&nameMatchMode=EXACT&communityId=${community.id}&limit=1`);
+    const existingDom = (domRes.results || []);
+    if (existingDom.length > 0) {
+      domain = existingDom[0];
+      setStep('domain', 'done', `Found existing: ${domain.id}`);
+    } else {
+      domain = await apiPost('domains', {
+        name: DOMAIN_NAME, communityId: community.id,
+        typeId: GLOSSARY_TYPE_ID, description: DOMAIN_NAME
+      });
+      setStep('domain', 'done', `Created: ${domain.id}`);
+    }
+    collibraIds.domainId = domain.id;
+
+    // Step 3: Asset
+    setStep('asset', 'active');
+    let asset;
+    const assetRes = await apiGet(`assets?name=${encodeURIComponent(ASSET_NAME)}&nameMatchMode=EXACT&domainId=${domain.id}&limit=1`);
+    const existingAsset = (assetRes.results || []);
+    if (existingAsset.length > 0) {
+      asset = existingAsset[0];
+      setStep('asset', 'done', `Found existing: ${asset.id}`);
+    } else {
+      asset = await apiPost('assets', {
+        name: ASSET_NAME, displayName: ASSET_NAME,
+        domainId: domain.id, typeId: BUSINESS_TERM_TYPE_ID, statusId: ACCEPTED_STATUS_ID
+      });
+      setStep('asset', 'done', `Created: ${asset.id}`);
+    }
+    collibraIds.assetId = asset.id;
+
+    // Step 4: Definition attribute (add or update)
+    setStep('attribute', 'active');
+    const attrRes = await apiGet(`attributes?assetId=${asset.id}&typeId=${DEFINITION_ATTR_TYPE_ID}&limit=1`);
+    const existingAttr = (attrRes.results || []);
+    if (existingAttr.length > 0) {
+      const attrId = existingAttr[0].id;
+      await apiPatch(`attributes/${attrId}`, { id: attrId, value: wrapAsRichText(configStr) });
+      collibraIds.definitionAttrId = attrId;
+      setStep('attribute', 'done', `Updated: ${attrId}`);
+    } else {
+      const newAttr = await apiPost('attributes', {
+        assetId: asset.id, typeId: DEFINITION_ATTR_TYPE_ID, value: wrapAsRichText(configStr)
+      });
+      collibraIds.definitionAttrId = newAttr.id;
+      setStep('attribute', 'done', `Created: ${newAttr.id}`);
+    }
+
+    updateSyncBar('connected', `Saved to Collibra`, asset.id);
+    document.getElementById('modalTitle').textContent = 'Saved successfully';
+  } catch (err) {
+    // Mark current active step as error
+    for (const s of STEPS) {
+      const icon = document.querySelector(`#step-${s.id} .step-icon`);
+      if (icon.classList.contains('active')) {
+        setStep(s.id, 'error', err.message);
+        break;
+      }
+    }
+    document.getElementById('modalTitle').textContent = 'Save failed';
+    updateSyncBar('disconnected', `Save failed: ${err.message}`);
+  }
+  document.getElementById('modalFooter').style.display = 'flex';
+}
+
+// ─────────────────────────────────────
+// Load from Collibra
+// ─────────────────────────────────────
+async function loadFromCollibra() {
+  const btn = document.getElementById('btnLoadCollibra');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  updateSyncBar('loading', 'Connecting to Collibra…');
+
+  try {
+    if (!csrfToken) await fetchCsrf();
+
+    // Find community
+    const commRes = await apiGet(`communities?name=${encodeURIComponent(COMMUNITY_NAME)}&nameMatchMode=EXACT&limit=1`);
+    const comm = (commRes.results || [])[0];
+    if (!comm) throw new Error('Community not found. Save configuration first.');
+    collibraIds.communityId = comm.id;
+
+    // Find domain
+    const domRes = await apiGet(`domains?name=${encodeURIComponent(DOMAIN_NAME)}&nameMatchMode=EXACT&communityId=${comm.id}&limit=1`);
+    const dom = (domRes.results || [])[0];
+    if (!dom) throw new Error('Domain not found. Save configuration first.');
+    collibraIds.domainId = dom.id;
+
+    // Find asset
+    const assetRes = await apiGet(`assets?name=${encodeURIComponent(ASSET_NAME)}&nameMatchMode=EXACT&domainId=${dom.id}&limit=1`);
+    const asset = (assetRes.results || [])[0];
+    if (!asset) throw new Error('Asset not found. Save configuration first.');
+    collibraIds.assetId = asset.id;
+
+    // Read definition attribute
+    const attrRes = await apiGet(`attributes?assetId=${asset.id}&typeId=${DEFINITION_ATTR_TYPE_ID}&limit=1`);
+    const attr = (attrRes.results || [])[0];
+    if (!attr || !attr.value) throw new Error('Definition attribute not found or empty.');
+    collibraIds.definitionAttrId = attr.id;
+
+    const rawJson = extractFromRichText(attr.value);
+    const parsed = JSON.parse(rawJson);
+    boostConfig = parsed;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+
+    // Re-render everything
+    await reloadUI();
+    updateSyncBar('connected', 'Loaded from Collibra', asset.id);
+    showToast('Configuration loaded from Collibra', 'success');
+  } catch (err) {
+    console.error(err);
+    updateSyncBar('disconnected', err.message);
+    showToast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '&#8635; Load from Collibra';
+  }
+}
+
+function updateSyncBar(state, msg, id) {
+  document.getElementById('syncDot').className = `sync-dot ${state}`;
+  document.getElementById('syncLabel').innerHTML = msg;
+  document.getElementById('syncId').textContent = id ? `Asset: ${id}` : '';
+}
+
+// ─────────────────────────────────────
+// Import / Export JSON
+// ─────────────────────────────────────
+function exportConfig() {
+  cacheLocally();
+  const blob = new Blob([JSON.stringify(boostConfig, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'search-boost-config.json'; a.click(); URL.revokeObjectURL(a.href);
+  showToast('Config exported', 'success');
+}
+
+function importConfig() { document.getElementById('importInput').click(); }
+async function handleImport(e) {
+  const file = e.target.files[0]; if (!file) return;
+  try {
+    const text = await file.text();
+    const parsed = JSON.parse(text);
+    boostConfig = parsed;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    await reloadUI();
+    showToast('Config imported from file', 'success');
+  } catch (err) { showToast('Invalid JSON file', 'error'); }
+  e.target.value = '';
+}
+
+// ─────────────────────────────────────
+// Reset
+// ─────────────────────────────────────
+function resetAll() {
+  if (!confirm('Reset all boost values to 1.0? (This only resets locally. Save to Collibra to persist.)')) return;
+  boostConfig = { assetTypes: {}, statuses: {}, attributeTypes: {} };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(boostConfig));
+  document.querySelectorAll('.boost-slider').forEach(s => s.value = 100);
+  document.querySelectorAll('.boost-value').forEach(v => v.value = '1.0');
+  document.querySelectorAll('.boost-indicator').forEach(i => { i.textContent = ''; i.className = 'boost-indicator neutral'; });
+  document.querySelectorAll('.attr-card').forEach(c => c.classList.remove('has-rules'));
+  document.querySelectorAll('.rules-count').forEach(e => e.remove());
+  updateRuleCount();
+  showToast('All boosts reset to 1.0', 'success');
+}
+
+// ─────────────────────────────────────
+// Rendering: simple tables
+// ─────────────────────────────────────
+function renderSimpleTable(containerId, category, items) {
+  const container = document.getElementById(`table-${containerId}`);
+  document.getElementById(`count-${containerId}`).textContent = items.length;
+  if (!items.length) { container.innerHTML = '<div class="empty-state">No items found</div>'; return; }
+  container.innerHTML = `<table class="boost-table"><thead><tr><th>Name</th><th>ID</th><th>Boost Multiplier</th></tr></thead><tbody>${
+    items.map(item => {
+      const cur = boostConfig[category]?.[item.id] ?? 1.0;
+      return `<tr>
+        <td class="name-cell">${esc(item.name)}</td>
+        <td class="id-cell" title="${esc(item.id)}">${esc(item.id)}</td>
+        <td><div class="boost-control">
+          <input type="range" class="boost-slider" min="0" max="500" value="${Math.round(cur*100)}"
+            data-category="${category}" data-id="${item.id}" oninput="onSimpleSlider(this)">
+          <input type="text" class="boost-value" value="${cur.toFixed(1)}"
+            data-category="${category}" data-id="${item.id}" onchange="onSimpleInput(this)">
+          <span class="boost-indicator ${indCls(cur)}">${indTxt(cur)}</span>
+        </div></td></tr>`;
+    }).join('')
+  }</tbody></table>`;
+}
+function onSimpleSlider(el) {
+  const v = parseFloat(el.value)/100, row = el.closest('tr');
+  row.querySelector('.boost-value').value = v.toFixed(1);
+  const ind = row.querySelector('.boost-indicator');
+  ind.textContent = indTxt(v); ind.className = 'boost-indicator ' + indCls(v);
+  if (!boostConfig[el.dataset.category]) boostConfig[el.dataset.category] = {};
+  boostConfig[el.dataset.category][el.dataset.id] = v;
+}
+function onSimpleInput(el) {
+  let v = parseFloat(el.value); if(isNaN(v)||v<0)v=1; if(v>5)v=5;
+  el.value = v.toFixed(1); const row = el.closest('tr');
+  row.querySelector('.boost-slider').value = Math.round(v*100);
+  const ind = row.querySelector('.boost-indicator');
+  ind.textContent = indTxt(v); ind.className = 'boost-indicator ' + indCls(v);
+  if (!boostConfig[el.dataset.category]) boostConfig[el.dataset.category] = {};
+  boostConfig[el.dataset.category][el.dataset.id] = v;
+}
+
+// ─────────────────────────────────────
+// Rendering: attribute types
+// ─────────────────────────────────────
+function classify(rt) {
+  if (/^Boolean/i.test(rt)) return 'boolean';
+  if (/^SingleValueList/i.test(rt)) return 'single';
+  if (/^MultiValueList/i.test(rt)) return 'multi';
+  if (/^Numeric/i.test(rt)) return 'numeric';
+  return 'text';
+}
+function friendlyType(rt) {
+  const m = { BooleanAttributeType:'Boolean', SingleValueListAttributeType:'Single Select',
+    MultiValueListAttributeType:'Multi Select', NumericAttributeType:'Numeric',
+    StringAttributeType:'Text', DateAttributeType:'Date', ScriptAttributeType:'Script' };
+  return m[rt] || rt.replace(/AttributeType$/,'');
+}
+
+function renderAttributeTypes(items) {
+  allAttrTypes = items;
+  const container = document.getElementById('table-attributeTypes');
+  document.getElementById('count-attributeTypes').textContent = items.length;
+  if (!items.length) { container.innerHTML = '<div class="empty-state">No attribute types found</div>'; return; }
+
+  container.innerHTML = items.map(at => {
+    const rt = at.resourceType || at.attributeTypeDiscriminator || '';
+    const cls = classify(rt);
+    const friendly = friendlyType(rt);
+    const rules = boostConfig.attributeTypes?.[at.id]?.rules || {};
+    const activeCount = Object.values(rules).filter(v => v !== 1.0).length;
+
+    let body = '';
+    if (at.description) body += `<div class="attr-card-desc">${esc(at.description)}</div>`;
+    body += `<div class="attr-card-id">ID: ${esc(at.id)}</div>`;
+
+    if (cls === 'boolean') {
+      body += `<div class="value-rows">
+        ${mkRow(at.id, 'true',  '&#10003; True',  'bool-true', rules)}
+        ${mkRow(at.id, 'false', '&#10007; False', 'bool-false', rules)}
+      </div>`;
+    } else if (cls === 'single' || cls === 'multi') {
+      const vals = at.allowedValues || [];
+      if (vals.length) {
+        body += `<div class="presence-note">${cls==='single'?'Single selection':'Multiple selections allowed'} &mdash; set a boost per value.</div>`;
+        body += `<div class="value-rows">${vals.map(v => mkRow(at.id, v, v, '', rules)).join('')}</div>`;
+      } else {
+        body += `<div class="presence-note">No allowed values defined. Boost based on presence.</div>`;
+        body += `<div class="value-rows">${mkRow(at.id, '__presence__', 'Has any value', '', rules)}</div>`;
+      }
+    } else {
+      body += `<div class="presence-note">Boost applies when this attribute has any value.</div>`;
+      body += `<div class="value-rows">${mkRow(at.id, '__presence__', 'Has any value', '', rules)}</div>`;
+    }
+
+    return `<div class="attr-card${activeCount?' has-rules':''}" data-name="${esc(at.name.toLowerCase())}" data-id="${esc(at.id)}">
+      <div class="attr-card-header" onclick="toggleCard(this)">
+        <div class="attr-card-left">
+          <svg class="attr-card-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="9 18 15 12 9 6"/></svg>
+          <span class="attr-card-name" title="${esc(at.name)}">${esc(at.name)}</span>
+        </div>
+        <div class="attr-card-meta">
+          ${activeCount?`<span class="rules-count">${activeCount} rule${activeCount>1?'s':''}</span>`:''}
+          <span class="type-tag ${cls}">${friendly}</span>
+        </div>
+      </div>
+      <div class="attr-card-body">${body}</div>
+    </div>`;
+  }).join('');
+  updateRuleCount();
+}
+
+function mkRow(attrId, valKey, label, extraClass, rules) {
+  const cur = rules[valKey] ?? 1.0;
+  return `<div class="value-row">
+    <span class="value-label ${extraClass}" title="${esc(valKey)}">${label}</span>
+    <div class="boost-control">
+      <input type="range" class="boost-slider" min="0" max="500" value="${Math.round(cur*100)}"
+        data-attr-id="${esc(attrId)}" data-val-key="${esc(valKey)}" oninput="onAttrSlider(this)">
+      <input type="text" class="boost-value" value="${cur.toFixed(1)}"
+        data-attr-id="${esc(attrId)}" data-val-key="${esc(valKey)}" onchange="onAttrInput(this)">
+      <span class="boost-indicator ${indCls(cur)}">${indTxt(cur)}</span>
+    </div>
+  </div>`;
+}
+
+function onAttrSlider(el) {
+  const v = parseFloat(el.value)/100, row = el.closest('.value-row');
+  row.querySelector('.boost-value').value = v.toFixed(1);
+  const ind = row.querySelector('.boost-indicator');
+  ind.textContent = indTxt(v); ind.className = 'boost-indicator ' + indCls(v);
+  setAttrRule(el.dataset.attrId, el.dataset.valKey, v);
+  refreshCardMeta(el);
+}
+function onAttrInput(el) {
+  let v = parseFloat(el.value); if(isNaN(v)||v<0)v=1; if(v>5)v=5;
+  el.value = v.toFixed(1); const row = el.closest('.value-row');
+  row.querySelector('.boost-slider').value = Math.round(v*100);
+  const ind = row.querySelector('.boost-indicator');
+  ind.textContent = indTxt(v); ind.className = 'boost-indicator ' + indCls(v);
+  setAttrRule(el.dataset.attrId, el.dataset.valKey, v);
+  refreshCardMeta(el);
+}
+
+function setAttrRule(attrId, valKey, val) {
+  if (!boostConfig.attributeTypes) boostConfig.attributeTypes = {};
+  if (!boostConfig.attributeTypes[attrId]) {
+    const at = allAttrTypes.find(a => a.id === attrId);
+    boostConfig.attributeTypes[attrId] = { resourceType: at?.resourceType || at?.attributeTypeDiscriminator || 'unknown', rules: {} };
+  }
+  boostConfig.attributeTypes[attrId].rules[valKey] = val;
+}
+
+function refreshCardMeta(el) {
+  const card = el.closest('.attr-card');
+  const rules = boostConfig.attributeTypes?.[card.dataset.id]?.rules || {};
+  const count = Object.values(rules).filter(v => v !== 1.0).length;
+  card.classList.toggle('has-rules', count > 0);
+  const meta = card.querySelector('.attr-card-meta');
+  let badge = meta.querySelector('.rules-count');
+  if (count > 0) {
+    if (!badge) { badge = document.createElement('span'); badge.className = 'rules-count'; meta.insertBefore(badge, meta.firstChild); }
+    badge.textContent = `${count} rule${count>1?'s':''}`;
+  } else if (badge) badge.remove();
+  updateRuleCount();
+}
+
+function updateRuleCount() {
+  const total = Object.values(boostConfig.attributeTypes || {})
+    .reduce((s, c) => s + Object.values(c.rules||{}).filter(v=>v!==1.0).length, 0);
+  const el = document.getElementById('count-attrRules');
+  el.style.display = total ? '' : 'none';
+  el.textContent = `${total} rule${total!==1?'s':''}`;
+}
+
+function toggleCard(hdr) { hdr.closest('.attr-card').classList.toggle('open'); }
+function filterAttrCards() {
+  const q = document.getElementById('attrFilter').value.toLowerCase();
+  document.querySelectorAll('.attr-card').forEach(c => c.style.display = c.dataset.name.includes(q)?'':'none');
+}
+
+// ─────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────
+function indCls(v) { return v>1?'positive':v<1?'negative':'neutral'; }
+function indTxt(v) { return v>1?`+${((v-1)*100).toFixed(0)}%`:v<1?`${((v-1)*100).toFixed(0)}%`:''; }
+function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = `toast ${type} show`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('active'));
+  t.classList.add('active');
+  document.getElementById(`panel-${t.dataset.panel}`).classList.add('active');
+}));
+
+// ─────────────────────────────────────
+// Full UI reload (after load/import)
+// ─────────────────────────────────────
+let cachedAssetTypes = [], cachedStatuses = [], cachedAttrTypes = [];
+
+async function reloadUI() {
+  renderSimpleTable('assetTypes', 'assetTypes', cachedAssetTypes);
+  renderSimpleTable('statuses', 'statuses', cachedStatuses);
+  renderAttributeTypes(cachedAttrTypes);
+}
+
+// ─────────────────────────────────────
+// Init
+// ─────────────────────────────────────
+(async function() {
+  try {
+    await fetchCsrf();
+    const [at, st, att] = await Promise.all([fetchAll('assetTypes'), fetchAll('statuses'), fetchAll('attributeTypes')]);
+    cachedAssetTypes = at.sort((a,b) => a.name.localeCompare(b.name));
+    cachedStatuses = st.sort((a,b) => a.name.localeCompare(b.name));
+    cachedAttrTypes = att.sort((a,b) => a.name.localeCompare(b.name));
+    renderSimpleTable('assetTypes', 'assetTypes', cachedAssetTypes);
+    renderSimpleTable('statuses', 'statuses', cachedStatuses);
+    renderAttributeTypes(cachedAttrTypes);
+
+    // Auto-load from Collibra on init
+    await autoLoadFromCollibra();
+  } catch (err) {
+    console.error(err);
+    ['assetTypes','statuses','attributeTypes'].forEach(id => {
+      document.getElementById(`table-${id}`).innerHTML =
+        `<div class="empty-state" style="color:var(--danger)">Failed to load: ${esc(err.message)}<br>Make sure you are logged into Collibra.</div>`;
+    });
+  }
+})();
+
+// Try to load from Collibra silently at startup
+async function autoLoadFromCollibra() {
+  try {
+    const commRes = await apiGet(`communities?name=${encodeURIComponent(COMMUNITY_NAME)}&nameMatchMode=EXACT&limit=1`);
+    const comm = (commRes.results || [])[0]; if (!comm) return;
+    const domRes = await apiGet(`domains?name=${encodeURIComponent(DOMAIN_NAME)}&nameMatchMode=EXACT&communityId=${comm.id}&limit=1`);
+    const dom = (domRes.results || [])[0]; if (!dom) return;
+    const assetRes = await apiGet(`assets?name=${encodeURIComponent(ASSET_NAME)}&nameMatchMode=EXACT&domainId=${dom.id}&limit=1`);
+    const asset = (assetRes.results || [])[0]; if (!asset) return;
+    const attrRes = await apiGet(`attributes?assetId=${asset.id}&typeId=${DEFINITION_ATTR_TYPE_ID}&limit=1`);
+    const attr = (attrRes.results || [])[0]; if (!attr?.value) return;
+
+    collibraIds = { communityId: comm.id, domainId: dom.id, assetId: asset.id, definitionAttrId: attr.id };
+    const rawJson = extractFromRichText(attr.value);
+    const parsed = JSON.parse(rawJson);
+    boostConfig = parsed;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
+    await reloadUI();
+    updateSyncBar('connected', 'Synced with Collibra', asset.id);
+  } catch (e) {
+    console.log('Auto-load from Collibra skipped:', e.message);
+  }
+}
+</script>
+</body>
+</html>
