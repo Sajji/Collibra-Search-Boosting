@@ -27,6 +27,25 @@
     --font: 'DM Sans', sans-serif;
     --mono: 'JetBrains Mono', monospace;
   }
+  [data-theme="light"] {
+    --navy: #f5f7fa;
+    --navy-light: #ffffff;
+    --navy-mid: #e8ecf1;
+    --slate: #d1d8e0;
+    --gold: #d4a000;
+    --gold-dim: #b38600;
+    --gold-glow: rgba(212, 160, 0, 0.10);
+    --cyan: #0e7fad;
+    --cyan-dim: rgba(14, 127, 173, 0.10);
+    --text: #1a2332;
+    --text-dim: #4a5568;
+    --text-muted: #8896ab;
+    --border: rgba(0,0,0,0.08);
+    --danger: #dc2626;
+    --success: #16a34a;
+    --purple: #7c3aed;
+    --radius: 8px;
+  }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: var(--font); background: var(--navy); color: var(--text); min-height: 100vh; line-height: 1.5; }
 
@@ -127,8 +146,8 @@
   .hl-fragment strong { color: var(--gold); font-weight: 600; }
 
   .result-score {
-    position: absolute; top: 18px; right: 22px;
-    font-family: var(--mono); font-size: 10px; color: var(--text-muted); display: none;
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    display: none; margin-top: -4px; margin-bottom: 6px;
   }
   .show-scores .result-score { display: block; }
   .boost-detail {
@@ -186,6 +205,10 @@
       <span>Scores</span>
       <div id="scoreToggle" class="toggle" onclick="toggleScores()"></div>
     </div>
+    <div class="toggle-wrap" style="margin-left:4px">
+      <span>&#9788; Light</span>
+      <div id="themeToggle" class="toggle" onclick="toggleTheme()"></div>
+    </div>
   </div>
 </div>
 
@@ -240,7 +263,7 @@ let configSource = 'local'; // 'collibra' or 'local'
 
   // Restore UI toggles
   const saved = localStorage.getItem('search-ui-state');
-  if (saved) try { const s = JSON.parse(saved); boostEnabled = s.boostEnabled ?? true; showScores = s.showScores ?? false; } catch {}
+  if (saved) try { const s = JSON.parse(saved); boostEnabled = s.boostEnabled ?? true; showScores = s.showScores ?? false; if (s.theme === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch {}
   syncToggles();
 
   // Load boost config — try Collibra first, fall back to localStorage
@@ -318,15 +341,21 @@ function updateSourceBadge() {
 // ── Toggles ──
 function toggleBoost() { boostEnabled = !boostEnabled; syncToggles(); saveUI(); if (rawResults.length) renderResults(); }
 function toggleScores() { showScores = !showScores; syncToggles(); saveUI(); }
+function toggleTheme() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
+  syncToggles(); saveUI();
+}
 function syncToggles() {
   document.getElementById('boostToggle').classList.toggle('on', boostEnabled);
   document.getElementById('scoreToggle').classList.toggle('on', showScores);
+  document.getElementById('themeToggle').classList.toggle('on', document.documentElement.getAttribute('data-theme') === 'light');
   const bb = document.getElementById('boostBadge');
   bb.className = `boost-badge ${boostEnabled?'on':'off'}`;
   bb.textContent = boostEnabled ? 'Boosts: On' : 'Boosts: Off';
   document.getElementById('resultsContainer').classList.toggle('show-scores', showScores);
 }
-function saveUI() { localStorage.setItem('search-ui-state', JSON.stringify({ boostEnabled, showScores })); }
+function saveUI() { localStorage.setItem('search-ui-state', JSON.stringify({ boostEnabled, showScores, theme: document.documentElement.getAttribute('data-theme') || 'dark' })); }
 
 // ── Fetch attribute values for result assets ──
 async function fetchAttributeValues(assetIds, config) {
@@ -422,7 +451,7 @@ async function doSearch(offset) {
 
   const payload = {
     keywords: query,
-    searchInFields: [{ resourceType: "Asset", fields: ["displayName","name","attributes","StringAttribute:00000000-0000-0000-0000-000000007022"] }],
+    searchInFields: [{ resourceType: "Asset", fields: ["displayName","name","attributes","StringAttribute:00000000-0000-0000-0000-000000007022", "attributes", "displayName", "comments", "tags", "dataClassification"] }],
     sortField: "RELEVANCE", sortOrder: "DESC",
     highlights: { preTag: "<strong>", postTag: "</strong>" },
     limit: PAGE_SIZE, offset
@@ -490,7 +519,6 @@ function renderResults() {
     const bdHtml = r._breakdown.length ? `<div class="boost-detail">Boosts: ${r._breakdown.map(b=>`<span>${esc(b)}</span>`).join(' &middot; ')}</div>` : '';
 
     return `<div class="result-card" onclick="if(event.target.tagName!=='A')window.open('${url}','_blank')">
-      <div class="result-score">score: ${r._score.toFixed(1)} (\u00d7${r._mult.toFixed(2)})</div>
       <div class="result-header">
         <div class="result-title"><a href="${url}" target="_blank" onclick="event.stopPropagation()">${esc(name)}</a></div>
         <div class="result-badges">
@@ -499,6 +527,7 @@ function renderResults() {
           ${boostLabel}
         </div>
       </div>
+      <div class="result-score">score: ${r._score.toFixed(1)} (\u00d7${r._mult.toFixed(2)})</div>
       ${hlRows?`<div class="result-highlights">${hlRows}</div>`:''}
       ${bdHtml}
     </div>`;
