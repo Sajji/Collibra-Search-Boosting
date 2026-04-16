@@ -20,7 +20,7 @@ A custom search interface for Collibra Data Governance Center that adds configur
 |---|---|
 | `search.html` | Search interface with boost-aware result ranking |
 | `admin.html` | Admin panel for managing boost multipliers |
-| `collibra-rest-schema.json` | Collibra REST API v2.0 OpenAPI schema (reference) |
+
 
 ## Setup
 
