@@ -8,7 +8,7 @@ A custom search interface for Collibra Data Governance Center that adds configur
 - **Faceted Filters** — Sidebar filters for Asset Type, Status, Domain, and Community that span the full result set, not just the current page.
 - **Client-Side Pagination** — Up to 500 results are fetched upfront; filtering and paging happen instantly in the browser.
 - **Admin Panel** — Configure boost multipliers per asset type, status, and attribute value through a visual interface with sliders and direct input.
-- **Attribute Rules** — Supports per-value boost rules for boolean, single-select, multi-select, and text/numeric attributes (boost on presence).
+- **Attribute Rules** — Supports per-value boost rules for boolean, single-select, multi-select, text, numeric, and date attributes. Text/numeric/date types also support adding custom value-match rules alongside the default presence boost.
 - **Collibra-Persisted Config** — Saves boost configuration as a Definition attribute on a Business Term asset in Collibra, so settings are shared across users.
 - **Local Fallback** — Falls back to `localStorage` when a Collibra-stored config isn't available.
 - **Import / Export** — Export and import boost configuration as JSON files.

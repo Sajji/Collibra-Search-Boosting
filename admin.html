@@ -185,6 +185,26 @@
   .type-tag.multi   { background: var(--purple-dim); color: var(--purple); }
   .type-tag.text    { background: rgba(255,255,255,0.05); color: var(--text-muted); }
   .type-tag.numeric { background: rgba(251,191,36,0.12); color: #fbbf24; }
+  .type-tag.date    { background: rgba(251,146,60,0.12); color: #fb923c; }
+
+  .add-rule-row {
+    display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 0 4px;
+  }
+  .add-rule-input {
+    font-family: var(--font); font-size: 13px; padding: 6px 10px;
+    background: var(--navy); border: 1px solid var(--border); border-radius: 4px;
+    color: var(--text); outline: none; flex: 1; max-width: 200px;
+  }
+  .add-rule-input:focus { border-color: var(--gold); }
+  .add-rule-input::placeholder { color: var(--text-muted); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; }
+  .remove-rule-btn {
+    background: none; border: none; color: var(--danger); cursor: pointer;
+    font-size: 16px; line-height: 1; padding: 2px 4px; opacity: 0.6;
+    transition: opacity 0.15s;
+  }
+  .remove-rule-btn:hover { opacity: 1; }
+
   .rules-count {
     font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
     background: var(--gold-glow); color: var(--gold);
@@ -740,6 +760,7 @@ function classify(rt) {
   if (/^SingleValueList/i.test(rt)) return 'single';
   if (/^MultiValueList/i.test(rt)) return 'multi';
   if (/^Numeric/i.test(rt)) return 'numeric';
+  if (/^Date/i.test(rt)) return 'date';
   return 'text';
 }
 function friendlyType(rt) {
@@ -781,8 +802,22 @@ function renderAttributeTypes(items) {
         body += `<div class="value-rows">${mkRow(at.id, '__presence__', 'Has any value', '', rules)}</div>`;
       }
     } else {
-      body += `<div class="presence-note">Boost applies when this attribute has any value.</div>`;
-      body += `<div class="value-rows">${mkRow(at.id, '__presence__', 'Has any value', '', rules)}</div>`;
+      // Text, Numeric, Date — presence boost + custom value rules
+      const inputType = cls === 'numeric' ? 'number' : cls === 'date' ? 'date' : 'text';
+      const placeholder = cls === 'numeric' ? 'Enter number…' : cls === 'date' ? '' : 'Enter value…';
+      body += `<div class="presence-note">Boost when this attribute has any value, or add rules for specific values.</div>`;
+      body += `<div class="value-rows">`;
+      body += mkRow(at.id, '__presence__', 'Has any value', '', rules);
+      for (const [rk] of Object.entries(rules)) {
+        if (rk === '__presence__') continue;
+        body += mkRemovableRow(at.id, rk, rk, rules);
+      }
+      body += `</div>`;
+      body += `<div class="add-rule-row">
+        <input type="${inputType}" class="add-rule-input" placeholder="${placeholder}"
+          onkeydown="if(event.key==='Enter'){event.preventDefault();addValueRule(this.parentElement.querySelector('.btn-sm'))}">
+        <button class="btn btn-secondary btn-sm" data-attr-id="${esc(at.id)}" onclick="addValueRule(this)">+ Add Rule</button>
+      </div>`;
     }
 
     return `<div class="attr-card${activeCount?' has-rules':''}" data-name="${esc(at.name.toLowerCase())}" data-id="${esc(at.id)}">
@@ -863,6 +898,69 @@ function updateRuleCount() {
   const el = document.getElementById('count-attrRules');
   el.style.display = total ? '' : 'none';
   el.textContent = `${total} rule${total!==1?'s':''}`;
+}
+
+function mkRemovableRow(attrId, valKey, label, rules) {
+  const cur = rules[valKey] ?? 1.0;
+  return `<div class="value-row" data-val-key="${esc(valKey)}">
+    <span class="value-label" title="${esc(valKey)}">${esc(label)}</span>
+    <div class="boost-control">
+      <input type="range" class="boost-slider" min="0" max="500" value="${Math.round(cur*100)}"
+        data-attr-id="${esc(attrId)}" data-val-key="${esc(valKey)}" oninput="onAttrSlider(this)">
+      <input type="text" class="boost-value" value="${cur.toFixed(1)}"
+        data-attr-id="${esc(attrId)}" data-val-key="${esc(valKey)}" onchange="onAttrInput(this)">
+      <span class="boost-indicator ${indCls(cur)}">${indTxt(cur)}</span>
+      <button class="remove-rule-btn" data-attr-id="${esc(attrId)}" data-val-key="${esc(valKey)}" onclick="removeValueRule(this)" title="Remove rule">&times;</button>
+    </div>
+  </div>`;
+}
+
+function addValueRule(btn) {
+  const attrId = btn.dataset.attrId;
+  const row = btn.closest('.add-rule-row');
+  const input = row.querySelector('.add-rule-input');
+  const val = input.value.trim();
+  if (!val) return;
+  if (!boostConfig.attributeTypes) boostConfig.attributeTypes = {};
+  if (!boostConfig.attributeTypes[attrId]) {
+    const at = allAttrTypes.find(a => a.id === attrId);
+    boostConfig.attributeTypes[attrId] = { resourceType: at?.resourceType || at?.attributeTypeDiscriminator || 'unknown', rules: {} };
+  }
+  if (boostConfig.attributeTypes[attrId].rules[val] !== undefined) {
+    showToast('Rule already exists for this value', 'error');
+    return;
+  }
+  boostConfig.attributeTypes[attrId].rules[val] = 1.0;
+  const card = btn.closest('.attr-card');
+  const valueRows = card.querySelector('.value-rows');
+  valueRows.insertAdjacentHTML('beforeend', mkRemovableRow(attrId, val, val, boostConfig.attributeTypes[attrId].rules));
+  input.value = '';
+  refreshCardMetaById(attrId);
+}
+
+function removeValueRule(btn) {
+  const attrId = btn.dataset.attrId;
+  const valKey = btn.dataset.valKey;
+  if (boostConfig.attributeTypes?.[attrId]?.rules) {
+    delete boostConfig.attributeTypes[attrId].rules[valKey];
+  }
+  btn.closest('.value-row').remove();
+  refreshCardMetaById(attrId);
+}
+
+function refreshCardMetaById(attrId) {
+  const card = document.querySelector(`.attr-card[data-id="${CSS.escape(attrId)}"]`);
+  if (!card) return;
+  const rules = boostConfig.attributeTypes?.[attrId]?.rules || {};
+  const count = Object.values(rules).filter(v => v !== 1.0).length;
+  card.classList.toggle('has-rules', count > 0);
+  const meta = card.querySelector('.attr-card-meta');
+  let badge = meta.querySelector('.rules-count');
+  if (count > 0) {
+    if (!badge) { badge = document.createElement('span'); badge.className = 'rules-count'; meta.insertBefore(badge, meta.firstChild); }
+    badge.textContent = `${count} rule${count>1?'s':''}`;
+  } else if (badge) badge.remove();
+  updateRuleCount();
 }
 
 function toggleCard(hdr) { hdr.closest('.attr-card').classList.toggle('open'); }
