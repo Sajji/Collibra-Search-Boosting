@@ -95,7 +95,7 @@
   }
   .toggle.on::after { transform: translateX(16px); }
 
-  .search-container { max-width: 860px; margin: 0 auto; padding: 40px 32px 24px; }
+  .search-container { max-width: 1100px; margin: 0 auto; padding: 40px 32px 24px; }
   .search-box { position: relative; margin-bottom: 12px; }
   .search-icon {
     position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
@@ -114,7 +114,12 @@
     font-size: 12px; color: var(--text-muted); padding: 0 4px; min-height: 20px; margin-bottom: 8px;
   }
 
-  .results-container { max-width: 860px; margin: 0 auto; padding: 0 32px 64px; }
+  /* ── Content Layout ── */
+  .content-layout {
+    max-width: 1100px; margin: 0 auto; padding: 0 32px 64px;
+    display: flex; gap: 24px; align-items: flex-start;
+  }
+  .results-container { flex: 1; min-width: 0; }
 
   .result-card {
     background: var(--navy-light); border: 1px solid var(--border); border-radius: var(--radius);
@@ -179,9 +184,65 @@
   .empty-state .big { font-size: 40px; margin-bottom: 12px; }
   .empty-state p { font-size: 14px; max-width: 360px; margin: 0 auto; }
 
+  /* ── Facet Sidebar ── */
+  .facet-bar {
+    width: 210px; flex-shrink: 0;
+    display: none; position: sticky; top: 74px;
+  }
+  .facet-bar.active { display: block; }
+  .facet-sidebar-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border);
+  }
+  .facet-sidebar-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-muted);
+  }
+  .facet-active-chips { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 8px; }
+  .facet-chip {
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    padding: 3px 7px; border-radius: 4px;
+    background: var(--gold-glow); color: var(--gold); border: 1px solid rgba(242,180,0,0.2);
+    cursor: pointer; display: inline-flex; align-items: center; gap: 3px;
+    transition: all 0.15s;
+  }
+  .facet-chip:hover { background: rgba(242,180,0,0.2); }
+  .facet-chip .chip-x { font-size: 13px; line-height: 1; }
+  .facet-clear {
+    font-family: var(--font); font-size: 11px; font-weight: 600;
+    padding: 3px 8px; border-radius: 4px; border: none;
+    background: rgba(248,113,113,0.12); color: var(--danger); cursor: pointer;
+    transition: all 0.15s; display: block; width: 100%; margin-top: 2px; text-align: left;
+  }
+  .facet-clear:hover { background: rgba(248,113,113,0.2); }
+  .facet-groups { display: flex; flex-direction: column; }
+  .facet-group { margin-bottom: 16px; }
+  .facet-group-title {
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); margin-bottom: 8px; padding-bottom: 4px;
+    border-bottom: 1px solid var(--border);
+  }
+  .facet-option {
+    display: flex; align-items: center; gap: 6px; padding: 3px 0;
+    font-size: 12px; color: var(--text-dim); cursor: pointer; transition: color 0.1s;
+  }
+  .facet-option:hover { color: var(--text); }
+  .facet-option input[type="checkbox"] {
+    accent-color: var(--gold); width: 14px; height: 14px; cursor: pointer; flex-shrink: 0;
+  }
+  .facet-option-label { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .facet-option-count {
+    font-family: var(--mono); font-size: 10px; color: var(--text-muted);
+    background: rgba(255,255,255,0.04); padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+  }
+
   @media (max-width: 768px) {
     .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
-    .search-container, .results-container { padding-left: 16px; padding-right: 16px; }
+    .search-container { padding-left: 16px; padding-right: 16px; }
+    .content-layout { flex-direction: column; padding: 0 16px 64px; gap: 12px; }
+    .facet-bar { width: 100%; position: static; }
+    .facet-groups { flex-direction: row; flex-wrap: wrap; gap: 12px; }
+    .facet-group { min-width: 140px; flex: 1; margin-bottom: 0; }
   }
 </style>
 </head>
@@ -223,10 +284,21 @@
   </div>
 </div>
 
-<div class="results-container" id="resultsContainer">
-  <div class="empty-state">
-    <div class="big">&#128269;</div>
-    <p>Type a keyword to search across assets, descriptions, and attributes in the catalog.</p>
+<div class="content-layout">
+  <!-- Facet sidebar -->
+  <div class="facet-bar" id="facetBar">
+    <div class="facet-sidebar-header">
+      <span class="facet-sidebar-title">Filters</span>
+    </div>
+    <div class="facet-active-chips" id="facetChips"></div>
+    <div class="facet-groups" id="facetGroups"></div>
+  </div>
+
+  <div class="results-container" id="resultsContainer">
+    <div class="empty-state">
+      <div class="big">&#128269;</div>
+      <p>Type a keyword to search across assets, descriptions, and attributes in the catalog.</p>
+    </div>
   </div>
 </div>
 
@@ -234,6 +306,7 @@
 const BASE_URL = window.location.origin;
 const STORAGE_KEY = 'collibra-search-boosts';
 const PAGE_SIZE = 50;
+const MAX_RESULTS = 500; // max results fetched from server for client-side filtering/pagination
 
 // Collibra config location constants
 const COMMUNITY_NAME = 'Collibra Configuration Settings';
@@ -245,12 +318,14 @@ let csrfToken = null;
 let boostEnabled = true;
 let showScores = false;
 let currentQuery = '';
-let currentOffset = 0;
+let currentPage = 0;
 let totalResults = 0;
-let rawResults = [];
+let allResults = [];
 let attrValueMap = {};
 let boostConfig = { assetTypes: {}, statuses: {}, attributeTypes: {} };
 let configSource = 'local'; // 'collibra' or 'local'
+let activeFilters = { type: new Set(), status: new Set(), domain: new Set(), community: new Set() };
+let facetPanelOpen = false;
 
 // ── Init ──
 (async function() {
@@ -269,7 +344,7 @@ let configSource = 'local'; // 'collibra' or 'local'
   // Load boost config — try Collibra first, fall back to localStorage
   await loadBoostConfig();
 
-  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(0); });
+  document.getElementById('searchInput').addEventListener('keydown', e => { if (e.key === 'Enter') doSearch(); });
   document.getElementById('searchInput').focus();
 })();
 
@@ -443,10 +518,10 @@ function boostBreakdown(result, config) {
 }
 
 // ── Search ──
-async function doSearch(offset) {
+async function doSearch() {
   const query = document.getElementById('searchInput').value.trim();
   if (!query) return;
-  currentQuery = query; currentOffset = offset;
+  currentQuery = query; currentPage = 0;
   document.getElementById('loadingBar').classList.add('active');
 
   const payload = {
@@ -454,7 +529,7 @@ async function doSearch(offset) {
     searchInFields: [{ resourceType: "Asset", fields: ["displayName","name","attributes","StringAttribute:00000000-0000-0000-0000-000000007022", "attributes", "displayName", "comments", "tags", "dataClassification"] }],
     sortField: "RELEVANCE", sortOrder: "DESC",
     highlights: { preTag: "<strong>", postTag: "</strong>" },
-    limit: PAGE_SIZE, offset
+    limit: MAX_RESULTS, offset: 0
   };
   const headers = { 'Content-Type': 'application/json' };
   if (csrfToken) headers['X-CSRF-TOKEN'] = csrfToken;
@@ -466,12 +541,14 @@ async function doSearch(offset) {
     if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
     const data = await res.json();
     totalResults = data.total || 0;
-    rawResults = data.results || [];
+    allResults = data.results || [];
 
     if (boostEnabled) {
-      const assetIds = rawResults.map(r => r.resource?.id).filter(Boolean);
+      const assetIds = allResults.map(r => r.resource?.id).filter(Boolean);
       await fetchAttributeValues(assetIds, boostConfig);
     }
+    activeFilters = { type: new Set(), status: new Set(), domain: new Set(), community: new Set() };
+    buildFacets();
     renderResults();
   } catch (err) {
     document.getElementById('resultsContainer').innerHTML =
@@ -486,13 +563,17 @@ function renderResults() {
   const meta = document.getElementById('resultsMeta');
   const info = document.getElementById('boostInfo');
 
-  if (!rawResults.length) {
+  if (!allResults.length) {
     container.innerHTML = '<div class="empty-state"><div class="big">&#128528;</div><p>No results found.</p></div>';
     meta.textContent = `0 results for "${currentQuery}"`;
-    info.textContent = ''; return;
+    info.textContent = '';
+    document.getElementById('facetBar').classList.remove('active');
+    return;
   }
 
-  let scored = rawResults.map((r, i) => {
+  const filtered = applyFacetFilters(allResults);
+
+  let scored = filtered.map((r, i) => {
     const base = 1000 - i;
     const mult = boostEnabled ? computeMultiplier(r, boostConfig) : 1.0;
     const bd = boostEnabled ? boostBreakdown(r, boostConfig) : [];
@@ -501,10 +582,15 @@ function renderResults() {
   scored.sort((a, b) => b._score - a._score);
 
   const boostCount = scored.filter(r => r._mult !== 1.0).length;
-  meta.textContent = `${totalResults.toLocaleString()} results for "${currentQuery}" \u00b7 showing ${currentOffset+1}\u2013${currentOffset+scored.length}`;
+  const fetchedNote = allResults.length < totalResults ? ` (top ${allResults.length.toLocaleString()} of ${totalResults.toLocaleString()})` : '';
+  const filterNote = filtered.length < allResults.length ? ` \u00b7 ${filtered.length} after filters` : '';
+  const pageStart = currentPage * PAGE_SIZE;
+  const pageEnd = Math.min(pageStart + PAGE_SIZE, scored.length);
+  meta.textContent = `${totalResults.toLocaleString()} results for "${currentQuery}"${fetchedNote}${filterNote} \u00b7 showing ${scored.length ? pageStart+1 : 0}\u2013${pageEnd}`;
   info.textContent = boostEnabled && boostCount ? `${boostCount} result${boostCount>1?'s':''} boosted` : '';
 
-  const cards = scored.map(r => {
+  const pageSlice = scored.slice(pageStart, pageEnd);
+  const cards = pageSlice.map(r => {
     const res = r.resource;
     const name = (res.displayName||res.name||'').replace(/---https?:\/\/.+$/,'').trim()||res.name;
     const url = `${BASE_URL}/asset/${res.id}`;
@@ -533,15 +619,15 @@ function renderResults() {
     </div>`;
   }).join('');
 
-  const totalPages = Math.ceil(totalResults/PAGE_SIZE);
-  const curPage = Math.floor(currentOffset/PAGE_SIZE)+1;
+  const totalPages = Math.ceil(scored.length / PAGE_SIZE);
+  const curPage = currentPage + 1;
   const pag = totalPages>1 ? `<div class="pagination">
-    <button class="page-btn" ${curPage<=1?'disabled':''} onclick="doSearch(${currentOffset-PAGE_SIZE})">&#8592; Prev</button>
+    <button class="page-btn" ${curPage<=1?'disabled':''} onclick="goToPage(${currentPage-1})">&#8592; Prev</button>
     <span class="page-info">Page ${curPage} of ${totalPages}</span>
-    <button class="page-btn" ${curPage>=totalPages?'disabled':''} onclick="doSearch(${currentOffset+PAGE_SIZE})">Next &#8594;</button>
+    <button class="page-btn" ${curPage>=totalPages?'disabled':''} onclick="goToPage(${currentPage+1})">Next &#8594;</button>
   </div>` : '';
 
-  container.innerHTML = cards + pag;
+  container.innerHTML = scored.length ? cards + pag : '<div class="empty-state"><div class="big">&#128528;</div><p>No results match the current filters.</p></div>';
 }
 
 function friendlyField(f) {
@@ -551,6 +637,111 @@ function friendlyField(f) {
   return f;
 }
 function esc(s) { const d=document.createElement('div'); d.textContent=s; return d.innerHTML; }
+
+// ── Faceted Filters ──
+function buildFacets() {
+  const facets = { type: {}, status: {}, domain: {}, community: {} };
+  for (const r of allResults) {
+    const res = r.resource;
+    const typeName = res.type?.name;
+    if (typeName) facets.type[typeName] = (facets.type[typeName] || 0) + 1;
+    const statusName = res.status?.name;
+    if (statusName) facets.status[statusName] = (facets.status[statusName] || 0) + 1;
+    const domainName = res.domain?.name;
+    if (domainName) facets.domain[domainName] = (facets.domain[domainName] || 0) + 1;
+    const commName = res.domain?.community?.name || res.community?.name;
+    if (commName) facets.community[commName] = (facets.community[commName] || 0) + 1;
+  }
+
+  const bar = document.getElementById('facetBar');
+  const groups = document.getElementById('facetGroups');
+  const hasAny = Object.values(facets).some(f => Object.keys(f).length > 0);
+  bar.classList.toggle('active', hasAny && allResults.length > 0);
+  if (!hasAny) return;
+
+  const labels = { type: 'Asset Type', status: 'Status', domain: 'Domain', community: 'Community' };
+  groups.innerHTML = Object.entries(facets)
+    .filter(([, vals]) => Object.keys(vals).length > 0)
+    .map(([key, vals]) => {
+      const sorted = Object.entries(vals).sort((a, b) => b[1] - a[1]);
+      return `<div class="facet-group">
+        <div class="facet-group-title">${labels[key]}</div>
+        ${sorted.map(([name, count]) => {
+          const checked = activeFilters[key].has(name) ? 'checked' : '';
+          const id = `facet-${key}-${name.replace(/[^a-zA-Z0-9]/g, '_')}`;
+          return `<label class="facet-option" for="${id}" title="${esc(name)}">
+            <input type="checkbox" id="${id}" ${checked}
+              onchange="onFacetChange('${key}', '${name.replace(/'/g, "\\'")}', this.checked)">
+            <span class="facet-option-label">${esc(name)}</span>
+            <span class="facet-option-count">${count}</span>
+          </label>`;
+        }).join('')}
+      </div>`;
+    }).join('');
+  renderFacetChips();
+}
+
+function onFacetChange(category, value, checked) {
+  if (checked) activeFilters[category].add(value);
+  else activeFilters[category].delete(value);
+  currentPage = 0;
+  renderFacetChips();
+  renderResults();
+}
+
+function removeFacet(category, value) {
+  activeFilters[category].delete(value);
+  const safeId = `facet-${category}-${value.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  const cb = document.getElementById(safeId);
+  if (cb) cb.checked = false;
+  currentPage = 0;
+  renderFacetChips();
+  renderResults();
+}
+
+function clearAllFacets() {
+  for (const k of Object.keys(activeFilters)) activeFilters[k].clear();
+  document.querySelectorAll('#facetGroups input[type="checkbox"]').forEach(c => c.checked = false);
+  currentPage = 0;
+  renderFacetChips();
+  renderResults();
+}
+
+function renderFacetChips() {
+  const chips = document.getElementById('facetChips');
+  const labels = { type: 'Type', status: 'Status', domain: 'Domain', community: 'Community' };
+  const allChips = [];
+  for (const [cat, vals] of Object.entries(activeFilters)) {
+    for (const v of vals) {
+      allChips.push(`<span class="facet-chip" onclick="removeFacet('${cat}','${v.replace(/'/g, "\\\'")}')" title="${labels[cat]}: ${esc(v)}">${labels[cat]}: ${esc(v)} <span class="chip-x">&times;</span></span>`);
+    }
+  }
+  if (allChips.length) allChips.push(`<button class="facet-clear" onclick="clearAllFacets()">Clear all</button>`);
+  chips.innerHTML = allChips.join('');
+
+}
+
+
+
+function goToPage(page) {
+  currentPage = page;
+  renderResults();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function applyFacetFilters(results) {
+  return results.filter(r => {
+    const res = r.resource;
+    if (activeFilters.type.size && !activeFilters.type.has(res.type?.name)) return false;
+    if (activeFilters.status.size && !activeFilters.status.has(res.status?.name)) return false;
+    if (activeFilters.domain.size && !activeFilters.domain.has(res.domain?.name)) return false;
+    if (activeFilters.community.size) {
+      const cName = res.domain?.community?.name || res.community?.name;
+      if (!activeFilters.community.has(cName)) return false;
+    }
+    return true;
+  });
+}
 </script>
 </body>
 </html>
