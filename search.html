@@ -5,6 +5,15 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Data Catalog Search</title>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script>
+  (function(){
+    try {
+      var s = JSON.parse(localStorage.getItem('search-ui-state'));
+      var t = (s && s.theme) ? s.theme : 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    } catch(e) {}
+  })();
+</script>
 <style>
   :root {
     --navy: #0a1628;
@@ -46,6 +55,201 @@
     --purple: #7c3aed;
     --radius: 8px;
   }
+
+  /* ── Light themes ── */
+  [data-theme="solarized"] {
+    --navy: #fdf6e3;
+    --navy-light: #eee8d5;
+    --navy-mid: #e8e2cc;
+    --slate: #d6d0bc;
+    --gold: #b58900;
+    --gold-dim: #8a6800;
+    --gold-glow: rgba(181,137,0,0.12);
+    --cyan: #268bd2;
+    --cyan-dim: rgba(38,139,210,0.12);
+    --text: #657b83;
+    --text-dim: #586e75;
+    --text-muted: #93a1a1;
+    --border: rgba(0,0,0,0.08);
+    --danger: #dc322f;
+    --success: #859900;
+    --purple: #6c71c4;
+    --radius: 8px;
+  }
+  [data-theme="paper"] {
+    --navy: #f8f9fc;
+    --navy-light: #ffffff;
+    --navy-mid: #eef1f6;
+    --slate: #d8dde6;
+    --gold: #2563eb;
+    --gold-dim: #1d4ed8;
+    --gold-glow: rgba(37,99,235,0.08);
+    --cyan: #0891b2;
+    --cyan-dim: rgba(8,145,178,0.10);
+    --text: #0f172a;
+    --text-dim: #334155;
+    --text-muted: #64748b;
+    --border: rgba(0,0,0,0.07);
+    --danger: #dc2626;
+    --success: #16a34a;
+    --purple: #7c3aed;
+    --radius: 8px;
+  }
+  [data-theme="rose"] {
+    --navy: #fff5f7;
+    --navy-light: #ffffff;
+    --navy-mid: #fce7eb;
+    --slate: #f4c2cc;
+    --gold: #e11d48;
+    --gold-dim: #be123c;
+    --gold-glow: rgba(225,29,72,0.09);
+    --cyan: #db2777;
+    --cyan-dim: rgba(219,39,119,0.10);
+    --text: #18181b;
+    --text-dim: #52525b;
+    --text-muted: #a1a1aa;
+    --border: rgba(0,0,0,0.07);
+    --danger: #b91c1c;
+    --success: #15803d;
+    --purple: #7c3aed;
+    --radius: 8px;
+  }
+  [data-theme="forest"] {
+    --navy: #f0fdf4;
+    --navy-light: #ffffff;
+    --navy-mid: #dcfce7;
+    --slate: #bbf7d0;
+    --gold: #16a34a;
+    --gold-dim: #15803d;
+    --gold-glow: rgba(22,163,74,0.10);
+    --cyan: #0d9488;
+    --cyan-dim: rgba(13,148,136,0.10);
+    --text: #0f172a;
+    --text-dim: #374151;
+    --text-muted: #6b7280;
+    --border: rgba(0,0,0,0.07);
+    --danger: #dc2626;
+    --success: #15803d;
+    --purple: #7c3aed;
+    --radius: 8px;
+  }
+  [data-theme="lavender"] {
+    --navy: #f5f3ff;
+    --navy-light: #ffffff;
+    --navy-mid: #ede9fe;
+    --slate: #ddd6fe;
+    --gold: #7c3aed;
+    --gold-dim: #6d28d9;
+    --gold-glow: rgba(124,58,237,0.10);
+    --cyan: #0891b2;
+    --cyan-dim: rgba(8,145,178,0.10);
+    --text: #0f172a;
+    --text-dim: #334155;
+    --text-muted: #64748b;
+    --border: rgba(0,0,0,0.07);
+    --danger: #dc2626;
+    --success: #16a34a;
+    --purple: #6d28d9;
+    --radius: 8px;
+  }
+
+  /* ── Dark themes ── */
+  [data-theme="midnight"] {
+    --navy: #000000;
+    --navy-light: #0d0d0d;
+    --navy-mid: #161616;
+    --slate: #222222;
+    --gold: #f2b400;
+    --gold-dim: #c49200;
+    --gold-glow: rgba(242,180,0,0.12);
+    --cyan: #38bdf8;
+    --cyan-dim: rgba(56,189,248,0.12);
+    --text: #ffffff;
+    --text-dim: #a0a0a0;
+    --text-muted: #555555;
+    --border: rgba(255,255,255,0.08);
+    --danger: #ff4444;
+    --success: #22dd88;
+    --purple: #b48ead;
+    --radius: 8px;
+  }
+  [data-theme="one-dark"] {
+    --navy: #21252b;
+    --navy-light: #282c34;
+    --navy-mid: #2c313a;
+    --slate: #3e4451;
+    --gold: #e5c07b;
+    --gold-dim: #d19a66;
+    --gold-glow: rgba(229,192,123,0.12);
+    --cyan: #61afef;
+    --cyan-dim: rgba(97,175,239,0.15);
+    --text: #abb2bf;
+    --text-dim: #7f848e;
+    --text-muted: #4b5263;
+    --border: rgba(255,255,255,0.06);
+    --danger: #e06c75;
+    --success: #98c379;
+    --purple: #c678dd;
+    --radius: 8px;
+  }
+  [data-theme="dracula"] {
+    --navy: #191a21;
+    --navy-light: #282a36;
+    --navy-mid: #2e3048;
+    --slate: #44475a;
+    --gold: #ff79c6;
+    --gold-dim: #ff5fad;
+    --gold-glow: rgba(255,121,198,0.12);
+    --cyan: #8be9fd;
+    --cyan-dim: rgba(139,233,253,0.12);
+    --text: #f8f8f2;
+    --text-dim: #bdbdbd;
+    --text-muted: #6272a4;
+    --border: rgba(255,255,255,0.08);
+    --danger: #ff5555;
+    --success: #50fa7b;
+    --purple: #bd93f9;
+    --radius: 8px;
+  }
+  [data-theme="monokai"] {
+    --navy: #1e1f1c;
+    --navy-light: #272822;
+    --navy-mid: #2d2e27;
+    --slate: #3d3d35;
+    --gold: #fd971f;
+    --gold-dim: #e8870a;
+    --gold-glow: rgba(253,151,31,0.12);
+    --cyan: #66d9e8;
+    --cyan-dim: rgba(102,217,232,0.12);
+    --text: #f8f8f2;
+    --text-dim: #cfcfc2;
+    --text-muted: #75715e;
+    --border: rgba(255,255,255,0.06);
+    --danger: #f92672;
+    --success: #a6e22e;
+    --purple: #ae81ff;
+    --radius: 8px;
+  }
+  [data-theme="nord"] {
+    --navy: #242933;
+    --navy-light: #2e3440;
+    --navy-mid: #3b4252;
+    --slate: #434c5e;
+    --gold: #ebcb8b;
+    --gold-dim: #d4aa68;
+    --gold-glow: rgba(235,203,139,0.12);
+    --cyan: #88c0d0;
+    --cyan-dim: rgba(136,192,208,0.12);
+    --text: #eceff4;
+    --text-dim: #d8dee9;
+    --text-muted: #4c566a;
+    --border: rgba(255,255,255,0.06);
+    --danger: #bf616a;
+    --success: #a3be8c;
+    --purple: #b48ead;
+    --radius: 8px;
+  }
+
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { font-family: var(--font); background: var(--navy); color: var(--text); min-height: 100vh; line-height: 1.5; }
 
@@ -251,6 +455,40 @@
     background: rgba(255,255,255,0.04); padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
   }
 
+  /* ── Theme Picker ── */
+  .theme-picker { position: relative; }
+  .theme-picker__btn {
+    font-family: var(--font); font-size: 12px; font-weight: 600;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius);
+    background: var(--navy-mid); color: var(--text-dim);
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.15s;
+  }
+  .theme-picker__btn:hover { background: var(--slate); color: var(--text); }
+  .theme-picker__chevron { transition: transform 0.15s; flex-shrink: 0; }
+  .theme-picker__btn[aria-expanded="true"] .theme-picker__chevron { transform: rotate(180deg); }
+  .theme-picker__menu {
+    position: absolute; right: 0; top: calc(100% + 6px);
+    background: var(--navy-light); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    list-style: none; padding: 6px; min-width: 158px;
+    display: none; z-index: 200; max-height: 360px; overflow-y: auto;
+  }
+  .theme-picker__menu.is-open { display: block; }
+  .theme-picker__menu button {
+    font-family: var(--font); font-size: 12px; font-weight: 500;
+    display: block; width: 100%; text-align: left;
+    padding: 7px 10px; border: none; border-radius: 5px;
+    background: none; color: var(--text-dim); cursor: pointer; transition: all 0.1s;
+  }
+  .theme-picker__menu button:hover { background: var(--navy-mid); color: var(--text); }
+  .theme-picker__menu button[aria-selected="true"] { color: var(--gold); background: var(--gold-glow); }
+  .theme-picker__sep { height: 1px; background: var(--border); margin: 4px 0; }
+  .theme-picker__group-label {
+    font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+    color: var(--text-muted); padding: 6px 10px 2px; display: block;
+  }
+
   @media (max-width: 768px) {
     .topbar { padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
     .search-container { padding-left: 16px; padding-right: 16px; }
@@ -281,9 +519,29 @@
       <span>Scores</span>
       <div id="scoreToggle" class="toggle" onclick="toggleScores()"></div>
     </div>
-    <div class="toggle-wrap" style="margin-left:4px">
-      <span>&#9788; Light</span>
-      <div id="themeToggle" class="toggle" onclick="toggleTheme()"></div>
+    <div class="theme-picker" id="themePicker">
+      <button class="theme-picker__btn" id="themePickerBtn" aria-haspopup="listbox" aria-expanded="false">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/><circle cx="7.5" cy="10.5" r=".75" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r=".75" fill="currentColor" stroke="none"/><circle cx="16.5" cy="10.5" r=".75" fill="currentColor" stroke="none"/></svg>
+        <span id="themePickerLabel">Dark</span>
+        <svg class="theme-picker__chevron" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </button>
+      <ul class="theme-picker__menu" id="themePickerMenu" role="listbox" aria-label="Theme">
+        <li class="theme-picker__group-label">Light</li>
+        <li><button role="option" data-value="light">Light</button></li>
+        <li><button role="option" data-value="solarized">Solarized</button></li>
+        <li><button role="option" data-value="paper">Paper</button></li>
+        <li><button role="option" data-value="rose">Rosé</button></li>
+        <li><button role="option" data-value="forest">Forest</button></li>
+        <li><button role="option" data-value="lavender">Lavender</button></li>
+        <li class="theme-picker__sep" role="separator" aria-hidden="true"></li>
+        <li class="theme-picker__group-label">Dark</li>
+        <li><button role="option" data-value="dark">Dark</button></li>
+        <li><button role="option" data-value="midnight">Midnight</button></li>
+        <li><button role="option" data-value="one-dark">One Dark</button></li>
+        <li><button role="option" data-value="dracula">Dracula</button></li>
+        <li><button role="option" data-value="monokai">Monokai</button></li>
+        <li><button role="option" data-value="nord">Nord</button></li>
+      </ul>
     </div>
   </div>
 </div>
@@ -355,8 +613,9 @@ let facetExpanded = {};
 
   // Restore UI toggles
   const saved = localStorage.getItem('search-ui-state');
-  if (saved) try { const s = JSON.parse(saved); boostEnabled = s.boostEnabled ?? true; showScores = s.showScores ?? false; if (s.theme === 'light') document.documentElement.setAttribute('data-theme', 'light'); } catch {}
+  if (saved) try { const s = JSON.parse(saved); boostEnabled = s.boostEnabled ?? true; showScores = s.showScores ?? false; } catch {}
   syncToggles();
+  initThemePicker();
 
   // Load boost config — try Collibra first, fall back to localStorage
   await loadBoostConfig();
@@ -431,23 +690,53 @@ function updateSourceBadge() {
 }
 
 // ── Toggles ──
-function toggleBoost() { boostEnabled = !boostEnabled; syncToggles(); saveUI(); if (rawResults.length) renderResults(); }
-function toggleScores() { showScores = !showScores; syncToggles(); saveUI(); }
-function toggleTheme() {
-  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
-  document.documentElement.setAttribute('data-theme', isLight ? 'dark' : 'light');
-  syncToggles(); saveUI();
+function toggleBoost() {
+  boostEnabled = !boostEnabled;
+  syncToggles();
+  saveUI();
+  if (currentQuery) {
+    doSearch();
+    return;
+  }
+  if (allResults.length) renderResults();
 }
+function toggleScores() { showScores = !showScores; syncToggles(); saveUI(); }
 function syncToggles() {
   document.getElementById('boostToggle').classList.toggle('on', boostEnabled);
   document.getElementById('scoreToggle').classList.toggle('on', showScores);
-  document.getElementById('themeToggle').classList.toggle('on', document.documentElement.getAttribute('data-theme') === 'light');
   const bb = document.getElementById('boostBadge');
   bb.className = `boost-badge ${boostEnabled?'on':'off'}`;
   bb.textContent = boostEnabled ? 'Boosts: On' : 'Boosts: Off';
   document.getElementById('resultsContainer').classList.toggle('show-scores', showScores);
 }
 function saveUI() { localStorage.setItem('search-ui-state', JSON.stringify({ boostEnabled, showScores, theme: document.documentElement.getAttribute('data-theme') || 'dark' })); }
+
+const THEME_LABELS = {
+  'light':'Light','solarized':'Solarized','paper':'Paper','rose':'Rosé','forest':'Forest','lavender':'Lavender',
+  'dark':'Dark','midnight':'Midnight','one-dark':'One Dark','dracula':'Dracula','monokai':'Monokai','nord':'Nord'
+};
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  const lbl = document.getElementById('themePickerLabel');
+  if (lbl) lbl.textContent = THEME_LABELS[theme] || theme;
+  const menu = document.getElementById('themePickerMenu');
+  if (menu) menu.querySelectorAll('[role="option"]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.value === theme)));
+  saveUI();
+}
+function initThemePicker() {
+  const currentTheme = document.documentElement.getAttribute('data-theme') || 'dark';
+  applyTheme(currentTheme);
+  const btn = document.getElementById('themePickerBtn');
+  const menu = document.getElementById('themePickerMenu');
+  if (!btn || !menu) return;
+  function closeMenu() { menu.classList.remove('is-open'); btn.setAttribute('aria-expanded', 'false'); }
+  btn.addEventListener('click', e => { e.stopPropagation(); const open = menu.classList.toggle('is-open'); btn.setAttribute('aria-expanded', String(open)); });
+  menu.querySelectorAll('[role="option"]').forEach(opt => {
+    opt.addEventListener('click', () => { applyTheme(opt.dataset.value); closeMenu(); });
+  });
+  document.addEventListener('click', closeMenu);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenu(); });
+}
 
 // ── Fetch attribute values for result assets ──
 async function fetchAttributeValues(assetIds, config) {
